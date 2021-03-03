@@ -1,5 +1,5 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, SubmitField, IntegerField, FloatField, SelectField, SelectMultipleField, PasswordField
+from wtforms import StringField, SubmitField, IntegerField, FloatField, SelectField, SelectMultipleField, PasswordField, TextAreaField
 from wtforms.validators import DataRequired
 
 class UserData(FlaskForm):
@@ -31,3 +31,8 @@ class LoginForm(FlaskForm):
     username = StringField('Логин', [DataRequired(message="Введите имя")])
     password = PasswordField('Пароль', [DataRequired(message="Введите пароль")])
     submit = SubmitField('Войти')
+
+class AddDevice(FlaskForm):
+    name = StringField('Имя устройства', [DataRequired(message="Введите имя устройства")])
+    sensors = TextAreaField('Датчики')
+    submit = SubmitField('Добавить')
