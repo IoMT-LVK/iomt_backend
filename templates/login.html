@@ -1,0 +1,26 @@
+{% extends "login_header.html" %}
+
+{% block container %}
+
+<center>
+    <form action="" method="post" class="login-form" novalidate>
+        {{ form.csrf_token() }}
+        <h1>Войти</h1>
+        <p>
+            {{ form.username.label }}<br>
+            {{ form.username(size=32) }}<br>
+            {% for error in form.username.errors %}
+            <span style="color: red;">[{{ error }}]</span>
+            {% endfor %}
+        </p>
+        <p>
+            {{ form.password.label }}<br>
+            {{ form.password(size=32) }}<br>
+            {% for error in form.password.errors %}
+            <span style="color: red;">[{{ error }}]</span>
+            {% endfor %}
+        </p>
+        <p>{{ form.submit() }}</p>
+    </form>
+</center>
+ {% endblock %}

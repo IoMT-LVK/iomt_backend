@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>IoMT</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style/style64.css') }}">
+</head>
+<body>
+<header>
+    <div class='hat'>
+        <h1 class="iomt">IoMT</h1>
+    </div>
+    <div class="header">
+        <a class="{% if request.path == '/data/' or request.path == '/data2/' %}active{% endif %}" href="/data/">Получить данные</a>
+        <a class="{% if request.path == '/adduser/' %}active{% endif %}" href="/adduser/">Добавить пациента</a>
+        <a class="{% if request.path == '/users/' %}active{% endif %}" href="/users/">Информация о пациентах</a>
+        <div class="header-right">
+            <a href="/logout/">Выход</a>
+        </div>
+    </div>
+</header>
+
+  <div class="container">
+    {% block container %} {% endblock %}
+  </div>
+
+</body>
+</html>

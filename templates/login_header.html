@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>IoMT</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style/style64.css') }}">
+</head>
+<body>
+<header>
+    <div class='hat'>
+        <h1 class="iomt">IoMT</h1>
+    </div>
+</header>
+
+  <div class="container">
+    {% block container %} {% endblock %}
+  </div>
+
+</body>
+</html>

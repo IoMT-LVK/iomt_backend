@@ -1,0 +1,59 @@
+{% extends 'header.html' %}
+
+{% block container %}
+
+<br>
+
+<form class="contact_form" method="POST" action="/adduser/", name="add-user">
+
+<ul>
+    {{ form.csrf_token() }}
+    <li>
+         <h2>Введите информацию о пользователе</h2>
+    </li>
+    <li>
+        {{ form.login.label }}
+        {{ form.login }}
+    </li>
+    <li>
+        {{ form.password.label }}
+        {{ form.password(class_="kind-password") }}
+    </li>
+    <li>
+        {{ form.surname.label }}
+        {{ form.surname }}
+    </li>
+    <li>
+        {{ form.name.label }}
+        {{ form.name }}
+    </li>
+    <li>
+        {{ form.patronymic.label }}
+        {{ form.patronymic }}
+    </li>
+    <li>
+        {{ form.age.label }}
+        {{ form.age(placeholder="DD.MM.YYYY") }}
+    </li>
+    <li>
+        {{ form.phone_number.label }}
+        {{ form.phone_number(placeholder="+7(999)999-99-99")}}
+    </li>
+    <li>
+        {{ form.email.label }}
+        {{ form.email(placeholder="examplename@example.com") }}
+    </li>
+    <li>
+        {{ form.weight.label }}
+        {{ form.weight(placeholder="кг") }}
+    </li>
+    <li>
+        {{ form.height.label }}
+        {{ form.height(placeholder="см") }}
+    </li>
+
+</ul>
+    {{ form.submit(class_ = "submit") }}
+</form>
+
+{% endblock %}
