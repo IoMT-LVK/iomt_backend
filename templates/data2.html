@@ -8,6 +8,12 @@
 
 <ul>
     {{ form.csrf_token() }}
+
+    <li>
+        {{ form.device.label }}
+        {{ form.device }}
+
+    </li>
     <li>
         {{ form.date_begin.label }}
         {{ form.date_begin(placeholder="YYYY-MM-DD HH:MM:SS") }}
@@ -16,15 +22,7 @@
         {{ form.date_end.label }}
         {{ form.date_end(placeholder="YYYY-MM-DD HH:MM:SS") }}
     </li>
-    <li>
-        {{ form.params.label }}
-        {% for subfield in form.params %}
-            <tr>
-                <td>{{ subfield }}</td>
-                <td>{{ subfield.label }}</td>
-            </tr>
-        {% endfor %}
-    </li>
+
 </ul>
     {{ form.submit(class_ = "submit") }}
 </form>

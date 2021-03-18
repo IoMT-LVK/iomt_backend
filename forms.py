@@ -3,9 +3,10 @@ from wtforms import StringField, SubmitField, IntegerField, FloatField, SelectFi
 from wtforms.validators import DataRequired
 
 class UserData(FlaskForm):
+    device = SelectField('Устройство:', coerce=int, validators=[DataRequired()])
     date_begin = StringField('Дата начала', [DataRequired(message="Введите дату начала")])
     date_end = StringField('Дата конца', [DataRequired(message="Введите дату конца")])
-    params = SelectMultipleField('Параметры', coerce=int, validators=[DataRequired()])
+   # params = SelectMultipleField('Параметры', coerce=int, validators=[DataRequired()])
     submit = SubmitField('Получить данные')
 
 

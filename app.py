@@ -1,8 +1,8 @@
 import os
-from flask import Flask, render_template, request, redirect, session
+from flask import Flask, render_template, request, redirect, session, send_file
 from forms import *
 from flask_wtf.csrf import CSRFProtect
-from models import db, Users, Operators, Devices
+from models import db, Users, Operators, Devices, Registerdevices
 from werkzeug.security import generate_password_hash, check_password_hash
 import auth
 
@@ -67,10 +67,17 @@ def get_data():
     if request.method == 'POST':
         form = UserList()
         user = form.us_list.data
-        session["user_data"] = user
-        #TO DO
+        #TODO
         form2 = UserData()
-        form2.params = params
+        devices = []
+        login = Users.objects(user_id=user).first().login
+        session["user_data"] = login
+
+        for d in Registerdevices.objects(user=login):
+            print(login, (d.device_id, d.device))
+            devices.append((d.device_id, d.device))
+
+        form2.device.choices = devices
         return render_template('data2.html', form=form2)
     else:
         form = UserList()
@@ -86,14 +93,13 @@ def get_data_second():
     if (not session.get('operator')):
         return redirect('/')
     form = UserData()
-    if form.validate_on_submit():
-        date_begin = form.date_begin.data
-        date_end = form.date_end.data
-        # params = form.params.data
-        # TODO
-        return render_template('upload_file.html', name=session['user_data'])
-    else:
-        return render_template('data2.html', form=form)
+    device = form.device.data
+    date_begin = form.date_begin.data
+    date_end = form.date_end.data
+    # params = form.params.data
+    # TODO
+    return render_template('upload_file.html', name=session['user_data'])
+
 
 
 @app.route('/adduser/', methods=["POST", "GET"] )
@@ -173,6 +179,12 @@ def add_device():
             dvs.sensor_name = it[1]
             dvs.save()
         return redirect('/devices/')
+
+
+@app.route('/download/')
+def download_file():
+    path = 'file.txt'
+    return send_file(path, as_attachment=True)
 
 @app.route('/logout/')
 def logout():

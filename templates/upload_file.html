@@ -2,6 +2,9 @@
 
 {% block container %}
 
-<h1> Файл для скачивания данных пациента {{name}} : </h1>
+    <h1> Файл для скачивания данных пациента {{ name }} : </h1>
 
+    <p>
+        <a href="{{ url_for('.download_file') }}">Download</a>
+    </p>
 {% endblock %}

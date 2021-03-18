@@ -53,7 +53,7 @@ class Devices(db.Document):
     sensor_name = db.StringField()
     # TODO: информация о датчиках
 
-class RegisterDevices(db.Document):
+class Registerdevices(db.Document):
     """User registered devices"""
     user = db.StringField()
     device = db.StringField()
