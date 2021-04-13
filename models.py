@@ -1,9 +1,10 @@
 from flask_mongoengine import MongoEngine
+from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 
 db = MongoEngine()
 
-class Users(db.Document):
+class Users(db.Document, UserMixin):
     """User accounts"""
     user_id = db.IntField()
     login = db.StringField()
@@ -29,7 +30,7 @@ class Users(db.Document):
         return check_password_hash(self.password_hash, password)
 
 
-class Operators(db.Document):
+class Operators(db.Document, UserMixin):
     """Operator accounts"""
     login = db.StringField()
     password_hash = db.StringField()

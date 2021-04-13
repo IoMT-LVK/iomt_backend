@@ -4,7 +4,7 @@ from forms import *
 from flask_wtf.csrf import CSRFProtect
 from models import db, Users, Operators, Devices, Registerdevices
 from werkzeug.security import generate_password_hash, check_password_hash
-from flask_login import login_user, login_required, logout_user, LoginManager
+from flask_login import current_user, login_user, login_required, logout_user, LoginManager
 import auth
 import uuid
 
@@ -29,6 +29,7 @@ app.config['WTF_CSRF_CHECK_DEFAULT'] = False
 app.config['SESSION_COOKIE_SECURE'] = False
 
 db.init_app(app)
+manager.init_app(app)
 
 gunicorn_error_logger = logging.getLogger('gunicorn.error')
 app.logger.handlers.extend(gunicorn_error_logger.handlers)
@@ -36,7 +37,7 @@ app.logger.setLevel(logging.DEBUG)
 
 @manager.user_loader
 def load_user(user_id):
-    return User.get(user_id)
+    return Operators.objects(pk=user_id).first()
 
 @app.route('/auth/')
 def auth():
@@ -48,7 +49,7 @@ def auth():
 
 @app.route('/')
 def main():
-    if (not session.get('operator')):
+    if not current_user.is_authenticated:
         return redirect('http://iomt.lvk.cs.msu.su/login/')
     else:
         app.logger.info("HERE")
@@ -62,7 +63,9 @@ def login():
         app.logger.info('data %s %s', form.username.data, form.password.data)
         operator = Operators.objects(login=form.username.data).first()
         if operator and operator.password_valid(form.password.data):
+            app.logger.info('Success!')
             login_user(operator)
+            app.logger.info('auth %s', current_user.is_authenticated)
             return redirect("http://iomt.lvk.cs.msu.su/")
         else:
             tmp = form.username.errors
@@ -116,7 +119,7 @@ def get_data_second():
 
 
 
-@app.route('/add/', methods=["POST", "GET"] )
+@app.route('/adduser/', methods=["POST", "GET"] )
 @login_required
 def add_user():
     if request.method == 'POST':
