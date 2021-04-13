@@ -6,6 +6,9 @@ from models import db, Users, Operators, Devices, Registerdevices
 from werkzeug.security import generate_password_hash, check_password_hash
 import auth
 
+import logging
+from logging.handlers import RotatingFileHandler
+
 #HeartRate, RespRate, Insp, Exp, Steps, Activity, Cadence
 params = [("HeartRate", "Частота сердцебиения"), ("RespRate", "Частота дыхания"),
           ("Insp", "Вдох"), ("Exp", "Выдох"), ("Steps", "Число шагов"), ("Activity", "Интенсиовность активности"),
@@ -20,8 +23,14 @@ app.config['MONGODB_SETTINGS'] = {
     'db': 'data',
     'host': 'localhost'
 }
+app.config['WTF_CSRF_CHECK_DEFAULT'] = False
+app.config['SESSION_COOKIE_SECURE'] = False
 
 db.init_app(app)
+
+gunicorn_error_logger = logging.getLogger('gunicorn.error')
+app.logger.handlers.extend(gunicorn_error_logger.handlers)
+app.logger.setLevel(logging.DEBUG)
 
 @app.route('/auth/')
 def auth():
@@ -34,20 +43,23 @@ def auth():
 
 @app.route('/')
 def main():
+    app.logger.info('operator %s', session.get('operator'))
     if (not session.get('operator')):
-        return redirect('/login/')
+        return redirect('http://iomt.lvk.cs.msu.su/login/')
     else:
-        return redirect('/data/')
+        app.logger.info("HERE")
+        return redirect('http://iomt.lvk.cs.msu.su/data/')
 
 
 @app.route('/login/', methods=['GET', 'POST'])
 def login():
     form = LoginForm()
     if request.method == 'POST':
+        app.logger.info('data %s %s', form.username.data, form.password.data)
         operator = Operators.objects(login=form.username.data).first()
         if operator and operator.password_valid(form.password.data):
             session["operator"] = form.username.data
-            return redirect("/")
+            return redirect("http://iomt.lvk.cs.msu.su/")
         else:
             tmp = form.username.errors
             tmp = list(tmp)
@@ -62,8 +74,9 @@ def login():
 
 @app.route('/data/', methods=["POST", "GET"])
 def get_data():
+    app.logger.info('operator %s', session.get('operator'))
     if (not session.get('operator')):
-        return redirect('/')
+        return redirect('http://iomt.lvk.cs.msu.su/')
     if request.method == 'POST':
         form = UserList()
         user = form.us_list.data
@@ -90,6 +103,7 @@ def get_data():
 
 @app.route('/data2/', methods=["POST", "GET"])
 def get_data_second():
+    app.logger.info('operator %s', session.get('operator'))
     if (not session.get('operator')):
         return redirect('/')
     form = UserData()
@@ -104,6 +118,7 @@ def get_data_second():
 
 @app.route('/adduser/', methods=["POST", "GET"] )
 def add_user():
+    app.logger.info('operator %s', session.get('operator'))
     if (not session.get('operator')):
         return redirect('/')
     if request.method == 'POST':
@@ -150,6 +165,7 @@ def user_info():
 
 @app.route('/devices/', methods=["POST", "GET"] )
 def devices():
+    app.logger.info('operator %s', session.get('operator'))
     if (not session.get('operator')):
         return redirect('/')
     objects = Devices.objects()
@@ -163,6 +179,7 @@ def devices():
 
 @app.route('/devices/add/', methods=["POST", "GET"] )
 def add_device():
+    app.logger.info('operator %s', session.get('operator'))
     if (not session.get('operator')):
         return redirect('/')
     if request.method == 'GET':
