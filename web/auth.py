@@ -12,9 +12,8 @@ def check_user(login, password):
             "sub": "mqttUser",
             "iat": int(datetime.timestamp(datetime.now())),
             "exp": int(datetime.timestamp(datetime.now())) + 300,
-            # TODO topics
             "subs": ["s/#"],
-            "publ": ["c/#"]
+            "publ": ["c/" + user.user_id + "/#"]
         }
         return jwt.encode(token, key, algorithm="HS256"), 200
     else:

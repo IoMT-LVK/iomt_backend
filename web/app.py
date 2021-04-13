@@ -1,5 +1,5 @@
 import os
-from flask import Flask, render_template, request, redirect, session, send_file
+from flask import Flask, render_template, request, redirect, session, send_file, url_for
 from web.forms import *
 from flask_wtf.csrf import CSRFProtect
 from web.models import db, Users, Operators, Devices, Registerdevices
@@ -9,11 +9,6 @@ import auth
 import uuid
 
 import logging
-
-#HeartRate, RespRate, Insp, Exp, Steps, Activity, Cadence
-params = [("HeartRate", "Частота сердцебиения"), ("RespRate", "Частота дыхания"),
-          ("Insp", "Вдох"), ("Exp", "Выдох"), ("Steps", "Число шагов"), ("Activity", "Интенсиовность активности"),
-          ("Cadence", "Каденция")]
 
 app = Flask(__name__)
 csrf = CSRFProtect(app)
@@ -25,8 +20,8 @@ app.config['MONGODB_SETTINGS'] = {
     'db': 'data',
     'host': 'localhost'
 }
-app.config['WTF_CSRF_CHECK_DEFAULT'] = False
-app.config['SESSION_COOKIE_SECURE'] = False
+# app.config['WTF_CSRF_CHECK_DEFAULT'] = False
+# app.config['SESSION_COOKIE_SECURE'] = False
 
 db.init_app(app)
 manager.init_app(app)
@@ -50,11 +45,9 @@ def auth():
 @app.route('/')
 def main():
     if not current_user.is_authenticated:
-        return redirect('http://iomt.lvk.cs.msu.su/login/')
+        return redirect(url_for('login'))
     else:
-        app.logger.info("HERE")
-        return redirect('http://iomt.lvk.cs.msu.su/data/')
-
+        return redirect(url_for('get_data'))
 
 @app.route('/login/', methods=['GET', 'POST'])
 def login():
@@ -63,13 +56,12 @@ def login():
         app.logger.info('data %s %s', form.username.data, form.password.data)
         operator = Operators.objects(login=form.username.data).first()
         if operator and operator.password_valid(form.password.data):
-            app.logger.info('Success!')
+            app.logger.info('Success login!')
             login_user(operator)
             app.logger.info('auth %s', current_user.is_authenticated)
-            return redirect("http://iomt.lvk.cs.msu.su/")
+            return redirect('main')
         else:
-            tmp = form.username.errors
-            tmp = list(tmp)
+            tmp = list(form.username.errors)
             if not operator:
                 tmp.append("Пользователь не зарегистрирован")
                 form.username.errors = tmp
@@ -117,8 +109,6 @@ def get_data_second():
     # TODO
     return render_template('upload_file.html', name=session['user_data'])
 
-
-
 @app.route('/adduser/', methods=["POST", "GET"] )
 @login_required
 def add_user():
@@ -137,7 +127,6 @@ def add_user():
         usr.phone_number = form.phone_number.data
         usr.email = form.email.data
         usr.save()
-
         return render_template('add_success.html', name=form.name.data, surname=form.surname.data)
     else:
         form = AddUser()
