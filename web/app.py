@@ -1,9 +1,9 @@
 import os
 from flask import Flask, render_template, request, redirect, session, send_file
-from forms import *
+from web.forms import *
 from flask_wtf.csrf import CSRFProtect
-from models import db, Users, Operators, Devices, Registerdevices
-from werkzeug.security import generate_password_hash, check_password_hash
+from web.models import db, Users, Operators, Devices, Registerdevices
+from werkzeug.security import generate_password_hash
 from flask_login import current_user, login_user, login_required, logout_user, LoginManager
 import auth
 import uuid

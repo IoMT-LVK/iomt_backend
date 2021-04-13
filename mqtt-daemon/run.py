@@ -8,7 +8,7 @@ from clickhouse_driver import Client
 import sys
 sys.path.append('..')
 
-from sensors import get_sensors
+from web.sensors import get_sensors
 
 clientdb = Client(host='localhost')
 topicName = "c/#"
