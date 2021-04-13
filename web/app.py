@@ -45,9 +45,9 @@ def auth():
 @app.route('/')
 def main():
     if not current_user.is_authenticated:
-        return redirect(url_for('login'))
+        return redirect('http://iomt.lvk.cs.msu.su/login/')
     else:
-        return redirect(url_for('get_data'))
+        return redirect('http://iomt.lvk.cs.msu.su/data/')
 
 @app.route('/login/', methods=['GET', 'POST'])
 def login():
@@ -59,7 +59,7 @@ def login():
             app.logger.info('Success login!')
             login_user(operator)
             app.logger.info('auth %s', current_user.is_authenticated)
-            return redirect('main')
+            return redirect('http://iomt.lvk.cs.msu.su/')
         else:
             tmp = list(form.username.errors)
             if not operator:
@@ -180,7 +180,7 @@ def add_device():
             dvs.sensor = it[0]
             dvs.sensor_name = it[1]
             dvs.save()
-        return redirect('/devices/')
+        return redirect('http://iomt.lvk.cs.msu.su/devices/')
 
 
 @app.route('/download/')
@@ -213,7 +213,7 @@ def new_user():
 @login_required
 def logout():
     logout_user()
-    return redirect('/')
+    return redirect('http://iomt.lvk.cs.msu.su/login/')
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0')
