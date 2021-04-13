@@ -4,10 +4,11 @@ from forms import *
 from flask_wtf.csrf import CSRFProtect
 from models import db, Users, Operators, Devices, Registerdevices
 from werkzeug.security import generate_password_hash, check_password_hash
+from flask_login import login_user, login_required, logout_user, LoginManager
 import auth
+import uuid
 
 import logging
-from logging.handlers import RotatingFileHandler
 
 #HeartRate, RespRate, Insp, Exp, Steps, Activity, Cadence
 params = [("HeartRate", "Частота сердцебиения"), ("RespRate", "Частота дыхания"),
@@ -16,6 +17,7 @@ params = [("HeartRate", "Частота сердцебиения"), ("RespRate",
 
 app = Flask(__name__)
 csrf = CSRFProtect(app)
+manager = LoginManager(app)
 
 SECRET_KEY = os.urandom(43)
 app.config['SECRET_KEY'] = SECRET_KEY
@@ -32,6 +34,10 @@ gunicorn_error_logger = logging.getLogger('gunicorn.error')
 app.logger.handlers.extend(gunicorn_error_logger.handlers)
 app.logger.setLevel(logging.DEBUG)
 
+@manager.user_loader
+def load_user(user_id):
+    return User.get(user_id)
+
 @app.route('/auth/')
 def auth():
     data = request.get_json()
@@ -40,10 +46,8 @@ def auth():
         return {'jwt':jwt}, code
     return {}, 403
 
-
 @app.route('/')
 def main():
-    app.logger.info('operator %s', session.get('operator'))
     if (not session.get('operator')):
         return redirect('http://iomt.lvk.cs.msu.su/login/')
     else:
@@ -58,7 +62,7 @@ def login():
         app.logger.info('data %s %s', form.username.data, form.password.data)
         operator = Operators.objects(login=form.username.data).first()
         if operator and operator.password_valid(form.password.data):
-            session["operator"] = form.username.data
+            login_user(operator)
             return redirect("http://iomt.lvk.cs.msu.su/")
         else:
             tmp = form.username.errors
@@ -73,10 +77,8 @@ def login():
 
 
 @app.route('/data/', methods=["POST", "GET"])
+@login_required
 def get_data():
-    app.logger.info('operator %s', session.get('operator'))
-    if (not session.get('operator')):
-        return redirect('http://iomt.lvk.cs.msu.su/')
     if request.method == 'POST':
         form = UserList()
         user = form.us_list.data
@@ -102,10 +104,8 @@ def get_data():
 
 
 @app.route('/data2/', methods=["POST", "GET"])
+@login_required
 def get_data_second():
-    app.logger.info('operator %s', session.get('operator'))
-    if (not session.get('operator')):
-        return redirect('/')
     form = UserData()
     device = form.device.data
     date_begin = form.date_begin.data
@@ -116,15 +116,13 @@ def get_data_second():
 
 
 
-@app.route('/adduser/', methods=["POST", "GET"] )
+@app.route('/add/', methods=["POST", "GET"] )
+@login_required
 def add_user():
-    app.logger.info('operator %s', session.get('operator'))
-    if (not session.get('operator')):
-        return redirect('/')
     if request.method == 'POST':
         form = AddUser()
         usr = Users()
-        usr.user_id = len(Users.objects) + 1
+        usr.user_id = uuid.uuid4().hex
         usr.name = form.name.data
         usr.password_hash = generate_password_hash(form.password.data)
         usr.surname = form.surname.data
@@ -145,9 +143,8 @@ def add_user():
 
 
 @app.route('/users/', methods=["POST", "GET"] )
+@login_required
 def user_info():
-    if (not session.get('operator')):
-        return redirect('/')
     if request.method == 'GET':
         form = UserList()
         user_list = []
@@ -164,10 +161,8 @@ def user_info():
         return render_template('user_info_data.html', user=d)
 
 @app.route('/devices/', methods=["POST", "GET"] )
+@login_required
 def devices():
-    app.logger.info('operator %s', session.get('operator'))
-    if (not session.get('operator')):
-        return redirect('/')
     objects = Devices.objects()
     devices = {}
     for item in objects:
@@ -178,10 +173,8 @@ def devices():
 
 
 @app.route('/devices/add/', methods=["POST", "GET"] )
+@login_required
 def add_device():
-    app.logger.info('operator %s', session.get('operator'))
-    if (not session.get('operator')):
-        return redirect('/')
     if request.method == 'GET':
         form = AddDevice()
         return render_template('add_device.html', form=form)
@@ -199,13 +192,35 @@ def add_device():
 
 
 @app.route('/download/')
+@login_required
 def download_file():
     path = 'file.txt'
     return send_file(path, as_attachment=True)
 
+@app.route('/registering/', methods=['POST'])
+@login_required
+def new_user():
+    data = request.json
+    usr = Users()
+    usr.user_id = uuid.uuid4().hex
+    usr.name = data['name']
+    usr.password_hash = data['password']
+    usr.surname = data['surname']
+    usr.login = data['login']
+    usr.patronymic = data['patronymic']
+    usr.birth_date = data['birthdate']
+    usr.weight = data['weight']
+    usr.height = data['height']
+    usr.phone_number = data['phone_number']
+    usr.email = data['email']
+    usr.save()
+    return 200
+
+
 @app.route('/logout/')
+@login_required
 def logout():
-    del session['operator']
+    logout_user()
     return redirect('/')
 
 if __name__ == '__main__':

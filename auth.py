@@ -4,7 +4,6 @@ from datetime import datetime
 
 key = 'secret'
 
-
 def check_user(login, password):
     """Check user data and generate JWT."""
     user = Users.objects(login=login).first()

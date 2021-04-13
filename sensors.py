@@ -3,7 +3,6 @@ from pymongo import MongoClient
 host = 'localhost'
 port = 27017
 
-
 def get_sensors(usr_device):
     """Returns a string of table attributes with sensors of requested device"""
     global host, port
