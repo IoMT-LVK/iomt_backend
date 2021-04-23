@@ -7,7 +7,7 @@ from werkzeug.security import generate_password_hash
 from flask_login import current_user, login_user, login_required, logout_user, LoginManager
 import auth
 import uuid
-from table import create_table
+from clickhouse_driver import Client
 
 import logging
 
@@ -27,6 +27,8 @@ app.config['MONGODB_SETTINGS'] = {
 db.init_app(app)
 manager.init_app(app)
 
+click_password = "iomtpassword123"
+
 gunicorn_error_logger = logging.getLogger('gunicorn.error')
 app.logger.handlers.extend(gunicorn_error_logger.handlers)
 app.logger.setLevel(logging.DEBUG)
@@ -40,7 +42,6 @@ def load_user(user_id):
 def authenticate():
     data = request.get_json()
     if data['login'] and data['password']:
-        app.logger.info('login %s password %s', data['login'], data['password'])
         jwt, code = auth.check_user(data['login'], data['password'])
         return jsonify({'jwt':jwt}), code
     return jsonify({}), 403
@@ -209,8 +210,11 @@ def register_device():
     if not obj:
         return "", 403
 
-    create_str = obj.create_str.format('table_name')
-    create_table(user_id, create_str)
+    create_str = obj.create_str.format(table_name)
+    app.logger.log("CREATE %s", create_str)
+
+    clientdb = Client(host='localhost', password = click_password)
+    clientdb.execute(create_str)
     return "", 200
 
 @app.route('/devices/get/', methods=['GET'])

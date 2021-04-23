@@ -20,6 +20,7 @@ class Users(db.Document):
         self.password_hash = generate_password_hash(password)
 
     def password_valid(self, password):
+
         return check_password_hash(self.password_hash, password)
 
 
