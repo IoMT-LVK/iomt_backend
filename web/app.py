@@ -227,7 +227,7 @@ def get_user_devices():
     return jsonify({"devices": devices}), 200
 
 @app.route('/devices/types/', methods=['GET'])
-def get_user_devices():
+def get_devices():
     token = request.args.get('token')
     user_id = request.args.get('id')
     if not token or not user_id or not auth.check_token(token):
