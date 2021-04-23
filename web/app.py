@@ -172,7 +172,7 @@ def new_user():
     link = 'http://iomt.lvk.cs.msu.su/confirm_email/' + id +'/'+ token
     msg.body = 'Your link is {}'.format(link)
     mail.send(msg)
-    return "Sucsess!!", 200
+    return "", 200
 
 @app.route('/confirm_email/<user_id>/<token>')
 @csrf.exempt
@@ -235,7 +235,6 @@ def get_devices():
     for obj in Devices.objects():
         devices.append(obj.device_type)
     return jsonify({"devices": devices}), 200
-
 
 @app.route('/logout/')
 @login_required
