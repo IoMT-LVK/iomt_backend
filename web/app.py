@@ -1,12 +1,13 @@
 import os
-from flask import Flask, render_template, request, redirect, session, send_file, url_for
-from web.forms import *
+from flask import Flask, render_template, request, redirect, session, send_file, jsonify
+from forms import *
 from flask_wtf.csrf import CSRFProtect
-from web.models import db, Users, Operators, Devices, Registerdevices
+from models import db, Users, Operators, Devices, Userdevices, Info
 from werkzeug.security import generate_password_hash
 from flask_login import current_user, login_user, login_required, logout_user, LoginManager
 import auth
 import uuid
+from table import create_table
 
 import logging
 
@@ -37,10 +38,10 @@ def load_user(user_id):
 @app.route('/auth/')
 def auth():
     data = request.get_json()
-    if data['username'] and data['password']:
+    if data['login'] and data['password']:
         jwt, code = auth.check_user(data['username'], data['password'])
-        return {'jwt':jwt}, code
-    return {}, 403
+        return jsonify({'jwt':jwt}), code
+    return jsonify({}), 403
 
 @app.route('/')
 def main():
@@ -52,6 +53,7 @@ def main():
 @app.route('/login/', methods=['GET', 'POST'])
 def login():
     form = LoginForm()
+    app.logger.info('csrf %s', form.csrf_token)
     if request.method == 'POST':
         app.logger.info('data %s %s', form.username.data, form.password.data)
         operator = Operators.objects(login=form.username.data).first()
@@ -83,9 +85,9 @@ def get_data():
         login = Users.objects(user_id=user).first().login
         session["user_data"] = login
 
-        for d in Registerdevices.objects(user=login):
-            print(login, (d.device_id, d.device))
-            devices.append((d.device_id, d.device))
+        for d in Userdevices.objects(user=login):
+            print(login, (d.device_id, d.device_name))
+            devices.append((d.device_id, d.device_name))
 
         form2.device.choices = devices
         return render_template('data2.html', form=form2)
@@ -117,7 +119,7 @@ def add_user():
         usr = Users()
         usr.user_id = uuid.uuid4().hex
         usr.name = form.name.data
-        usr.password_hash = generate_password_hash(form.password.data)
+        usr.password = generate_password_hash(form.password.data)
         usr.surname = form.surname.data
         usr.login = form.login.data
         usr.patronymic = form.patronymic.data
@@ -131,7 +133,6 @@ def add_user():
     else:
         form = AddUser()
         return render_template('add_user.html', form=form)
-
 
 
 @app.route('/users/', methods=["POST", "GET"] )
@@ -164,49 +165,64 @@ def devices():
     return render_template('devices.html', devices=devices)
 
 
-@app.route('/devices/add/', methods=["POST", "GET"] )
-@login_required
-def add_device():
-    if request.method == 'GET':
-        form = AddDevice()
-        return render_template('add_device.html', form=form)
-    else:
-        form = AddDevice()
-        srs = form.sensors.data.split('\n')
-        for it in srs:
-            dvs = Devices()
-            dvs.device = form.name.data
-            it = it.split(' ')
-            dvs.sensor = it[0]
-            dvs.sensor_name = it[1]
-            dvs.save()
-        return redirect('http://iomt.lvk.cs.msu.su/devices/')
-
-
 @app.route('/download/')
 @login_required
 def download_file():
     path = 'file.txt'
     return send_file(path, as_attachment=True)
 
-@app.route('/registering/', methods=['POST'])
-@login_required
+@app.route('/users/register/', methods=['POST'])
 def new_user():
     data = request.json
+    id = uuid.uuid4().hex
     usr = Users()
-    usr.user_id = uuid.uuid4().hex
-    usr.name = data['name']
-    usr.password_hash = data['password']
-    usr.surname = data['surname']
+    usr.user_id = id
     usr.login = data['login']
-    usr.patronymic = data['patronymic']
-    usr.birth_date = data['birthdate']
-    usr.weight = data['weight']
-    usr.height = data['height']
-    usr.phone_number = data['phone_number']
+    usr.password = data['password']
+    usr.login = data['login']
     usr.email = data['email']
     usr.save()
-    return 200
+    info = Info()
+    info.user_id = id
+    info.save()
+    return "", 200
+
+
+@app.route('/devices/register/', methods=['POST'])
+def register_device():
+    token = request.args.get('token')
+    user_id = request.args.get('id')
+    if not token or not user_id or not auth.check_token(token):
+        return "", 403
+    data = request.json
+    device = Userdevices()
+    device.user_id = user_id
+    device.device_id = data['device_id']
+    device.device_name = data['device_name']
+    device.device_type = data['device_type']
+    device.save()
+
+    table_name = user_id + '_' + data['device_id']
+    obj = Devices.objects(device_type=data['device_type']).first()
+    if not obj:
+        return "", 403
+
+    create_str = obj.create_str.format('table_name')
+    create_table(user_id, create_str)
+    return "", 200
+
+@app.route('/devices/get/', methods=['GET'])
+def get_user_devices():
+    token = request.args.get('token')
+    user_id = request.args.get('id')
+    if not token or not user_id or not auth.check_token(token):
+        return "", 403
+    objects = Userdevices.objects(user_id=user_id)
+    devices = []
+    for obj in objects:
+        device = {"device_id": obj.device_id, "device_name": obj.device_name, "device_type": obj.device_type}
+        devices.append(device)
+    return jsonify({"devices": devices}), 200
 
 
 @app.route('/logout/')

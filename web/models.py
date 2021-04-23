@@ -4,18 +4,11 @@ from werkzeug.security import generate_password_hash, check_password_hash
 
 db = MongoEngine()
 
-class Users(db.Document, UserMixin):
+class Users(db.Document):
     """User accounts"""
     user_id = db.IntField()
     login = db.StringField()
-    password_hash = db.StringField()
-    name = db.StringField()
-    surname = db.StringField()
-    patronymic = db.StringField()
-    birth_date = db.StringField()
-    weight = db.FloatField()
-    height = db.IntField()
-    phone_number = db.StringField()
+    password = db.StringField()
     email = db.StringField()
 
     @property
@@ -24,16 +17,26 @@ class Users(db.Document, UserMixin):
 
     @password.setter
     def password(self, password):
-        self.password_hash = generate_password_hash(password)
+        self.password = generate_password_hash(password)
 
     def password_valid(self, password):
-        return check_password_hash(self.password_hash, password)
+        return check_password_hash(self.password, password)
 
+
+class Info(db.Document):
+    user_id = db.IntField()
+    name = db.StringField()
+    surname = db.StringField()
+    patronymic = db.StringField()
+    birth_date = db.StringField()
+    weight = db.FloatField()
+    height = db.IntField()
+    phone_number = db.StringField()
 
 class Operators(db.Document, UserMixin):
     """Operator accounts"""
     login = db.StringField()
-    password_hash = db.StringField()
+    password = db.StringField()
 
     @property
     def password(self):
@@ -41,25 +44,23 @@ class Operators(db.Document, UserMixin):
 
     @password.setter
     def password(self, password):
-        self.password_hash = generate_password_hash(password)
+        self.password = generate_password_hash(password)
 
     def password_valid(self, password):
-        return check_password_hash(self.password_hash, password)
+        return check_password_hash(self.password, password)
 
 
 class Devices(db.Document):
     """Devices and their sensors"""
-    device = db.StringField()
-    sensor = db.StringField()
-    sensor_name = db.StringField()
-    # TODO: информация о датчиках
+    device_type = db.StringField()
+    create_str = db.StringField()
 
-class Registerdevices(db.Document):
+class Userdevices(db.Document):
     """User registered devices"""
-    user = db.StringField()
-    device = db.StringField()
+    user_id = db.StringField()
+    device_name = db.StringField()
     device_id = db.StringField()
-    sensors = db.StringField()
+    device_type = db.StringField()
 
 
 

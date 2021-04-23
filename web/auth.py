@@ -1,4 +1,5 @@
 import jwt
+import os
 from web.models import Users
 from datetime import datetime
 
@@ -18,6 +19,15 @@ def check_user(login, password):
         return jwt.encode(token, key, algorithm="HS256"), 200
     else:
         return {}, 402
+
+def check_token(token):
+    try:
+        print(jwt.decode(token, key, algorithms=["HS256"]))
+    except jwt.ExpiredSignatureError:
+        return False
+    except jwt.InvalidSignatureError:
+        return False
+    return True
 
 
 
