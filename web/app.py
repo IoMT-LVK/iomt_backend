@@ -81,7 +81,6 @@ def get_data():
     if request.method == 'POST':
         form = UserList()
         user = form.us_list.data
-        #TODO
         form2 = UserData()
         devices = []
         login = Users.objects(user_id=user).first().login
@@ -97,10 +96,9 @@ def get_data():
         form = UserList()
         user_list = []
         for u in Users.objects:
-            user_list.append((u.user_id, "{} {} {}".format(u.surname, u.name, u.patronymic)))
+            user_list.append((u.user_id, "{}".format(u.login)))
         form.us_list.choices = user_list
         return render_template('data.html', form=form)
-
 
 @app.route('/data2/', methods=["POST", "GET"])
 @login_required
