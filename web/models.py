@@ -6,7 +6,7 @@ db = MongoEngine()
 
 class Users(db.Document):
     """User accounts"""
-    user_id = db.IntField()
+    user_id = db.StringField()
     login = db.StringField()
     password_hash = db.StringField()
     email = db.StringField()
@@ -25,7 +25,7 @@ class Users(db.Document):
 
 
 class Info(db.Document):
-    user_id = db.IntField()
+    user_id = db.StringField()
     name = db.StringField()
     surname = db.StringField()
     patronymic = db.StringField()

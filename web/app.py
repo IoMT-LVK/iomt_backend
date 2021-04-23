@@ -17,7 +17,6 @@ csrf = CSRFProtect(app)
 manager = LoginManager(app)
 
 mail = Mail(app)
-s = URLSafeTimedSerializer(app.config['SECRET_KEY'])
 
 SECRET_KEY = os.urandom(43)
 app.config['SECRET_KEY'] = SECRET_KEY
@@ -25,12 +24,13 @@ app.config['MONGODB_SETTINGS'] = {
     'db': 'data',
     'host': 'localhost'
 }
-app.config['SECURITY_PASSWORD_SALT'] = "p13vvXm5Apbq0R34l48e4Kn44IazCaIkWuumOhcd"
+app.config.from_pyfile('config.cfg')
 # app.config['WTF_CSRF_CHECK_DEFAULT'] = False
 # app.config['SESSION_COOKIE_SECURE'] = False
 
 db.init_app(app)
 manager.init_app(app)
+s = URLSafeTimedSerializer(app.config['SECRET_KEY'])
 
 click_password = "iomtpassword123"
 
@@ -154,8 +154,9 @@ def download_file():
     return send_file(path, as_attachment=True)
 
 @app.route('/users/register/', methods=['POST'])
+@csrf.exempt
 def new_user():
-    data = request.json
+    data = request.get_json()
     id = uuid.uuid4().hex
     usr = Users()
     usr.user_id = id
@@ -176,6 +177,7 @@ def new_user():
     return "Sucsess!!", 200
 
 @app.route('/confirm_email/<user_id>/<token>')
+@csrf.exempt
 def confirm_email(user_id, token):
     try:
         email = s.loads(token, salt='email-confirm', max_age=3600)
