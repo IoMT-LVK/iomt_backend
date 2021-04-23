@@ -18,8 +18,6 @@ manager = LoginManager(app)
 
 mail = Mail(app)
 
-SECRET_KEY = os.urandom(43)
-app.config['SECRET_KEY'] = SECRET_KEY
 app.config['MONGODB_SETTINGS'] = {
     'db': 'data',
     'host': 'localhost'
@@ -31,7 +29,7 @@ app.config.from_pyfile('config.cfg')
 db.init_app(app)
 manager.init_app(app)
 s = URLSafeTimedSerializer(app.config['SECRET_KEY'])
-
+mail = Mail(app)
 click_password = "iomtpassword123"
 
 gunicorn_error_logger = logging.getLogger('gunicorn.error')
