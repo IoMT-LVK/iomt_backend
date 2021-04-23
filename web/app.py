@@ -8,7 +8,6 @@ from flask_login import current_user, login_user, login_required, logout_user, L
 import auth
 import uuid
 from clickhouse_driver import Client
-
 import logging
 
 app = Flask(__name__)
@@ -167,10 +166,10 @@ def devices():
         devices[item.device].append([item.sensor, item.sensor_name])
     return render_template('devices.html', devices=devices)
 
-
 @app.route('/download/')
 @login_required
 def download_file():
+    #TODO
     path = 'file.txt'
     return send_file(path, as_attachment=True)
 
@@ -181,7 +180,7 @@ def new_user():
     usr = Users()
     usr.user_id = id
     usr.login = data['login']
-    usr.password_hash= data['password']
+    usr.password_hash= generate_password_hash(data['password'])
     usr.login = data['login']
     usr.email = data['email']
     usr.save()
@@ -189,7 +188,6 @@ def new_user():
     info.user_id = id
     info.save()
     return "", 200
-
 
 @app.route('/devices/register/', methods=['POST'])
 def register_device():
@@ -228,6 +226,17 @@ def get_user_devices():
     for obj in objects:
         device = {"device_id": obj.device_id, "device_name": obj.device_name, "device_type": obj.device_type}
         devices.append(device)
+    return jsonify({"devices": devices}), 200
+
+@app.route('/devices/types/', methods=['GET'])
+def get_user_devices():
+    token = request.args.get('token')
+    user_id = request.args.get('id')
+    if not token or not user_id or not auth.check_token(token):
+        return "", 403
+    devices = []
+    for obj in Devices.objects():
+        devices.append(obj.device_type)
     return jsonify({"devices": devices}), 200
 
 
