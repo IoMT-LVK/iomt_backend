@@ -8,7 +8,7 @@ class Users(db.Document):
     """User accounts"""
     user_id = db.IntField()
     login = db.StringField()
-    password = db.StringField()
+    password_hash = db.StringField()
     email = db.StringField()
 
     @property
@@ -17,10 +17,10 @@ class Users(db.Document):
 
     @password.setter
     def password(self, password):
-        self.password = generate_password_hash(password)
+        self.password_hash = generate_password_hash(password)
 
     def password_valid(self, password):
-        return check_password_hash(self.password, password)
+        return check_password_hash(self.password_hash, password)
 
 
 class Info(db.Document):
@@ -36,7 +36,7 @@ class Info(db.Document):
 class Operators(db.Document, UserMixin):
     """Operator accounts"""
     login = db.StringField()
-    password = db.StringField()
+    password_hash = db.StringField()
 
     @property
     def password(self):

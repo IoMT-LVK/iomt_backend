@@ -35,11 +35,13 @@ app.logger.setLevel(logging.DEBUG)
 def load_user(user_id):
     return Operators.objects(pk=user_id).first()
 
-@app.route('/auth/')
-def auth():
+@app.route('/auth/', methods=['POST'])
+@csrf.exempt
+def authenticate():
     data = request.get_json()
     if data['login'] and data['password']:
-        jwt, code = auth.check_user(data['username'], data['password'])
+        app.logger.info('login %s password %s', data['login'], data['password'])
+        jwt, code = auth.check_user(data['login'], data['password'])
         return jsonify({'jwt':jwt}), code
     return jsonify({}), 403
 
@@ -119,7 +121,7 @@ def add_user():
         usr = Users()
         usr.user_id = uuid.uuid4().hex
         usr.name = form.name.data
-        usr.password = generate_password_hash(form.password.data)
+        usr.password_hash = generate_password_hash(form.password.data)
         usr.surname = form.surname.data
         usr.login = form.login.data
         usr.patronymic = form.patronymic.data
@@ -178,7 +180,7 @@ def new_user():
     usr = Users()
     usr.user_id = id
     usr.login = data['login']
-    usr.password = data['password']
+    usr.password_hash= data['password']
     usr.login = data['login']
     usr.email = data['email']
     usr.save()

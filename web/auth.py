@@ -1,6 +1,6 @@
 import jwt
 import os
-from web.models import Users
+from models import Users
 from datetime import datetime
 
 key = 'secret'
