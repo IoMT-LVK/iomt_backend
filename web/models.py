@@ -10,6 +10,7 @@ class Users(db.Document):
     login = db.StringField()
     password_hash = db.StringField()
     email = db.StringField()
+    confirmed = db.BooleanField()
 
     @property
     def password(self):

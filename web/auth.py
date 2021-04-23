@@ -8,7 +8,7 @@ key = 'secret'
 def check_user(login, password):
     """Check user data and generate JWT."""
     user = Users.objects(login=login).first()
-    if user and user.password_valid(password):
+    if user and user.confirmed and user.password_valid(password):
         token = {
             "sub": "mqttUser",
             "iat": int(datetime.timestamp(datetime.now())),

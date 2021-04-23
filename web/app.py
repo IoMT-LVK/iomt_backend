@@ -9,10 +9,15 @@ import auth
 import uuid
 from clickhouse_driver import Client
 import logging
+from flask_mail import Mail, Message
+from itsdangerous import URLSafeTimedSerializer, SignatureExpired
 
 app = Flask(__name__)
 csrf = CSRFProtect(app)
 manager = LoginManager(app)
+
+mail = Mail(app)
+s = URLSafeTimedSerializer(app.config['SECRET_KEY'])
 
 SECRET_KEY = os.urandom(43)
 app.config['SECRET_KEY'] = SECRET_KEY
@@ -20,6 +25,7 @@ app.config['MONGODB_SETTINGS'] = {
     'db': 'data',
     'host': 'localhost'
 }
+app.config['SECURITY_PASSWORD_SALT'] = "p13vvXm5Apbq0R34l48e4Kn44IazCaIkWuumOhcd"
 # app.config['WTF_CSRF_CHECK_DEFAULT'] = False
 # app.config['SESSION_COOKIE_SECURE'] = False
 
@@ -80,14 +86,13 @@ def login():
 def get_data():
     if request.method == 'POST':
         form = UserList()
-        user = form.us_list.data
+        user_id = form.us_list.data
+
         form2 = UserData()
         devices = []
-        login = Users.objects(user_id=user).first().login
-        session["user_data"] = login
+        session["user_data"] = user_id
 
-        for d in Userdevices.objects(user=login):
-            print(login, (d.device_id, d.device_name))
+        for d in Userdevices.objects(user_id=user_id):
             devices.append((d.device_id, d.device_name))
 
         form2.device.choices = devices
@@ -109,31 +114,8 @@ def get_data_second():
     date_end = form.date_end.data
     # params = form.params.data
     # TODO
+    app.logger.info("date %s end %s", date_begin, date_end)
     return render_template('upload_file.html', name=session['user_data'])
-
-@app.route('/adduser/', methods=["POST", "GET"] )
-@login_required
-def add_user():
-    if request.method == 'POST':
-        form = AddUser()
-        usr = Users()
-        usr.user_id = uuid.uuid4().hex
-        usr.name = form.name.data
-        usr.password_hash = generate_password_hash(form.password.data)
-        usr.surname = form.surname.data
-        usr.login = form.login.data
-        usr.patronymic = form.patronymic.data
-        usr.birth_date = form.age.data
-        usr.weight = form.weight.data
-        usr.height = form.height.data
-        usr.phone_number = form.phone_number.data
-        usr.email = form.email.data
-        usr.save()
-        return render_template('add_success.html', name=form.name.data, surname=form.surname.data)
-    else:
-        form = AddUser()
-        return render_template('add_user.html', form=form)
-
 
 @app.route('/users/', methods=["POST", "GET"] )
 @login_required
@@ -179,13 +161,30 @@ def new_user():
     usr.user_id = id
     usr.login = data['login']
     usr.password_hash= generate_password_hash(data['password'])
-    usr.login = data['login']
     usr.email = data['email']
+    usr.confirmed = False
     usr.save()
     info = Info()
     info.user_id = id
     info.save()
-    return "", 200
+
+    token = s.dumps(data['email'], salt='email-confirm')
+    msg = Message('Confirm Email', sender='iomt.confirmation@gmail.com', recipients=[data['email']])
+    link = 'http://iomt.lvk.cs.msu.su/confirm_email/' + id +'/'+ token
+    msg.body = 'Your link is {}'.format(link)
+    mail.send(msg)
+    return "Sucsess!!", 200
+
+@app.route('/confirm_email/<user_id>/<token>')
+def confirm_email(user_id, token):
+    try:
+        email = s.loads(token, salt='email-confirm', max_age=3600)
+    except SignatureExpired:
+        return '<h1>The link is expired!</h1>'
+    user = Users.objects(user_id=user_id).first()
+    user.confirmed = True
+    user.save()
+    return '<h1>Email confirmed!</h1>'
 
 @app.route('/devices/register/', methods=['POST'])
 def register_device():

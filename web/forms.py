@@ -25,7 +25,7 @@ class AddUser(FlaskForm):
 
 
 class UserList(FlaskForm):
-    us_list = SelectField('Пользователь:', coerce=int, validators=[DataRequired()])
+    us_list = SelectField('Пользователь:', validators=[DataRequired()])
     submit = SubmitField('Выбрать')
 
 class LoginForm(FlaskForm):
