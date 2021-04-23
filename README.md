@@ -47,7 +47,7 @@ deactivate
 ```
 2. Create virtual host config in /etc/nginx/sites-available/ and create symbolic link
 ```
-sudo ln -s /etc/nginx/sites-available/myproject /etc/nginx/sites-enabled
+sudo ln -s /etc/nginx/sites-available/iomt /etc/nginx/sites-enabled
 ```
 3. Create /etc/systemd/system/iomt.service and start service
 ```
