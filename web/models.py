@@ -20,7 +20,6 @@ class Users(db.Document):
         self.password_hash = generate_password_hash(password)
 
     def password_valid(self, password):
-
         return check_password_hash(self.password_hash, password)
 
 
@@ -45,10 +44,10 @@ class Operators(db.Document, UserMixin):
 
     @password.setter
     def password(self, password):
-        self.password = generate_password_hash(password)
+        self.password_hash = generate_password_hash(password)
 
     def password_valid(self, password):
-        return check_password_hash(self.password, password)
+        return check_password_hash(self.password_hash, password)
 
 
 class Devices(db.Document):
