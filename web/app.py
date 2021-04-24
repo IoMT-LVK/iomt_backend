@@ -154,6 +154,8 @@ def download_file():
 @csrf.exempt
 def new_user():
     data = request.get_json()
+    if Users.objects(login=data['login']).first():
+        return "", 403
     id = uuid.uuid4().hex
     usr = Users()
     usr.user_id = id
