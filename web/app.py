@@ -45,7 +45,7 @@ def authenticate():
     data = request.get_json()
     if data['login'] and data['password']:
         confirmed, jwt, code = auth.check_user(data['login'], data['password'])
-        return jsonify({'jwt':jwt}), code
+        return jsonify({'jwt':jwt, "confirmed": confirmed}), code
     return jsonify({}), 403
 
 @app.route('/')
