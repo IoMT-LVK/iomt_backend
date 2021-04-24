@@ -154,12 +154,14 @@ def download_file():
 @csrf.exempt
 def new_user():
     data = request.get_json()
-    man = Users.objects(email=data['email']).first()
-    if man:
-        if man.confirmed:
+    man_info = Info.objects(email=data['email']).first()
+    if man_info:
+        man_user = Users.objects(user_id=man_info.user_id).first()
+        if man_user.confirmed:
             return {"error":"email"}, 200
         else:
-            man.delete()
+            man_info.delete()
+            man_user.delete()
     if Users.objects(login=data['login']).first():
         return {"error":"login"}, 200
     id = uuid.uuid4().hex
@@ -167,16 +169,17 @@ def new_user():
     usr.user_id = id
     usr.login = data['login']
     usr.password_hash= generate_password_hash(data['password'])
-    usr.email = data['email']
-    usr.name = data['name']
-    usr.surname = data['surname']
-    usr.patronymic = data['patronymic']
-    usr.birth_date = data['birthdate']
-    usr.phone = data['phone_number']
     usr.confirmed = False
     usr.save()
+
     info = Info()
     info.user_id = id
+    info.email = data['email']
+    info.name = data['name']
+    info.surname = data['surname']
+    info.patronymic = data['patronymic']
+    info.birth_date = data['birthdate']
+    info.phone = data['phone_number']
     info.save()
 
     token = s.dumps(data['email'], salt='email-confirm')
@@ -198,19 +201,29 @@ def confirm_email(user_id, token):
     user.save()
     return '<h1>Email confirmed!</h1>'
 
-@app.route('/users/info/', methods=['POST'])
+@app.route('/users/info/', methods=['GET', 'POST'])
 def get_info():
     token = request.args.get('token')
     user_id = request.args.get('user_id')
     if not token or not user_id or not auth.check_token(token):
         return {}, 403
-    user = Users.objects(user_id=user_id).first()
-    info = Info.objects(user_id=user_id).first()
-
-    app.logger.info("%s", info.weight)
-    app.logger.info("%s", info.user_id)
-
-    return {"weight":info.weight, "height":info.height, "name":user.name, "surname":user.surname}, 200
+    if request.method == 'GET':
+        user = Users.objects(user_id=user_id).first()
+        info = Info.objects(user_id=user_id).first()
+        weight = 0 if not info.weight else info.weight
+        height = 0 if not info.height else info.height
+        return {"weight":info.weight, "height":info.height, "name":user.name, "surname":user.surname}, 200
+    else:
+        data = request.get_json()
+        info = Info.objects(user_id=user_id).first()
+        info.weight = data['weight']
+        info.height = data['height']
+        info.email = data['email']
+        info.name = data['name']
+        info.surname = data['surname']
+        info.patronymic = data['patronymic']
+        info.birth_date = data['birthdate']
+        info.phone = data['phone_number']
 
 @app.route('/devices/register/', methods=['POST'])
 def register_device():
@@ -218,7 +231,7 @@ def register_device():
     user_id = request.args.get('id')
     if not token or not user_id or not auth.check_token(token):
         return {}, 403
-    data = request.json
+    data = request.get_json()
     device = Userdevices()
     device.user_id = user_id
     device.device_id = data['device_id']

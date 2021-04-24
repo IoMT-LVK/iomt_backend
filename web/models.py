@@ -9,12 +9,6 @@ class Users(db.Document):
     user_id = db.StringField()
     login = db.StringField()
     password_hash = db.StringField()
-    email = db.StringField()
-    name = db.StringField()
-    surname = db.StringField()
-    patronymic = db.StringField()
-    birth_date = db.StringField()
-    phone = db.StringField()
     confirmed = db.BooleanField()
 
     @property
@@ -33,6 +27,12 @@ class Info(db.Document):
     user_id = db.StringField()
     weight = db.FloatField()
     height = db.IntField()
+    email = db.StringField()
+    name = db.StringField()
+    surname = db.StringField()
+    patronymic = db.StringField()
+    birth_date = db.StringField()
+    phone = db.StringField()
 
 class Operators(db.Document, UserMixin):
     """Operator accounts"""
