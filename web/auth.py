@@ -20,7 +20,7 @@ def check_user(login, password):
             "subs": ["s/#"],
             "publ": ["c/" + user.user_id + "/#"]
         }
-        return jwt.encode(token, key, algorithm="HS256"), 200
+        return True, jwt.encode(token, key, algorithm="HS256"), 200
     else:
         return True, {}, 402
 

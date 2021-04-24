@@ -98,7 +98,7 @@ def get_data():
         form = UserList()
         user_list = []
         for u in Users.objects:
-            user_list.append((u.user_id, "{}".format(u.login)))
+            user_list.append((u.user_id, "{} {} {}".format(u.name, u.surname, u.patronymic)))
         form.us_list.choices = user_list
         return render_template('data.html', form=form)
 
@@ -154,8 +154,14 @@ def download_file():
 @csrf.exempt
 def new_user():
     data = request.get_json()
+    man = Users.objects(login=data['email']).first()
+    if man:
+        if man.confirmed:
+            return {"error":"email"}, 200
+        else:
+            man.delete()
     if Users.objects(login=data['login']).first():
-        return "", 403
+        return {"error":"login"}, 200
     id = uuid.uuid4().hex
     usr = Users()
     usr.user_id = id
@@ -163,7 +169,7 @@ def new_user():
     usr.password_hash= generate_password_hash(data['password'])
     usr.email = data['email']
     usr.name = data['name']
-    usr.surname = data['suraname']
+    usr.surname = data['surname']
     usr.patronymic = data['patronymic']
     usr.birth_date = data['birthdate']
     usr.phone = data['phone_number']
@@ -209,21 +215,21 @@ def register_device():
     table_name = user_id + '_' + data['device_id']
     obj = Devices.objects(device_type=data['device_type']).first()
     if not obj:
-        return "", 403
+        return {}, 403
 
     create_str = obj.create_str.format(table_name)
     app.logger.log("CREATE %s", create_str)
 
     clientdb = Client(host='localhost', password = click_password)
     clientdb.execute(create_str)
-    return "", 200
+    return {}, 200
 
 @app.route('/devices/get/', methods=['GET'])
 def get_user_devices():
     token = request.args.get('token')
     user_id = request.args.get('id')
     if not token or not user_id or not auth.check_token(token):
-        return "", 403
+        return {}, 403
     objects = Userdevices.objects(user_id=user_id)
     devices = []
     for obj in objects:
@@ -236,7 +242,7 @@ def get_devices():
     token = request.args.get('token')
     user_id = request.args.get('id')
     if not token or not user_id or not auth.check_token(token):
-        return "", 403
+        return {}, 403
     devices = []
     for obj in Devices.objects():
         devices.append(obj.device_type)

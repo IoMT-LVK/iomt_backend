@@ -33,7 +33,6 @@ class Info(db.Document):
     user_id = db.StringField()
     weight = db.FloatField()
     height = db.IntField()
-    phone_number = db.StringField()
 
 class Operators(db.Document, UserMixin):
     """Operator accounts"""
