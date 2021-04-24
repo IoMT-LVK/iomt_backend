@@ -8,7 +8,11 @@ key = 'secret'
 def check_user(login, password):
     """Check user data and generate JWT."""
     user = Users.objects(login=login).first()
-    if user and user.confirmed and user.password_valid(password):
+    if not user:
+        return False, {}, 402
+    if  user.password_valid(password):
+        if not user.confirmed:
+            return False, {}, 200
         token = {
             "sub": "mqttUser",
             "iat": int(datetime.timestamp(datetime.now())),
@@ -18,7 +22,7 @@ def check_user(login, password):
         }
         return jwt.encode(token, key, algorithm="HS256"), 200
     else:
-        return {}, 402
+        return True, {}, 402
 
 def check_token(token):
     try:
