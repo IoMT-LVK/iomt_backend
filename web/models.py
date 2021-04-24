@@ -10,6 +10,11 @@ class Users(db.Document):
     login = db.StringField()
     password_hash = db.StringField()
     email = db.StringField()
+    name = db.StringField()
+    surname = db.StringField()
+    patronymic = db.StringField()
+    birth_date = db.StringField()
+    phone = db.StringField()
     confirmed = db.BooleanField()
 
     @property
@@ -26,10 +31,6 @@ class Users(db.Document):
 
 class Info(db.Document):
     user_id = db.StringField()
-    name = db.StringField()
-    surname = db.StringField()
-    patronymic = db.StringField()
-    birth_date = db.StringField()
     weight = db.FloatField()
     height = db.IntField()
     phone_number = db.StringField()

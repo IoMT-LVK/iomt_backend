@@ -1,4 +1,3 @@
-import os
 from flask import Flask, render_template, request, redirect, session, send_file, jsonify
 from forms import *
 from flask_wtf.csrf import CSRFProtect
@@ -13,10 +12,6 @@ from flask_mail import Mail, Message
 from itsdangerous import URLSafeTimedSerializer, SignatureExpired
 
 app = Flask(__name__)
-csrf = CSRFProtect(app)
-manager = LoginManager(app)
-
-mail = Mail(app)
 
 app.config['MONGODB_SETTINGS'] = {
     'db': 'data',
@@ -26,10 +21,14 @@ app.config.from_pyfile('config.cfg')
 # app.config['WTF_CSRF_CHECK_DEFAULT'] = False
 # app.config['SESSION_COOKIE_SECURE'] = False
 
-db.init_app(app)
+manager = LoginManager(app)
 manager.init_app(app)
+
+db.init_app(app)
+csrf = CSRFProtect(app)
 s = URLSafeTimedSerializer(app.config['SECRET_KEY'])
 mail = Mail(app)
+
 click_password = "iomtpassword123"
 
 gunicorn_error_logger = logging.getLogger('gunicorn.error')
@@ -88,7 +87,7 @@ def get_data():
 
         form2 = UserData()
         devices = []
-        session["user_data"] = user_id
+        session["user_id"] = user_id
 
         for d in Userdevices.objects(user_id=user_id):
             devices.append((d.device_id, d.device_name))
@@ -103,7 +102,7 @@ def get_data():
         form.us_list.choices = user_list
         return render_template('data.html', form=form)
 
-@app.route('/data2/', methods=["POST", "GET"])
+@app.route('/data/next', methods=["POST", "GET"])
 @login_required
 def get_data_second():
     form = UserData()
@@ -113,7 +112,7 @@ def get_data_second():
     # params = form.params.data
     # TODO
     app.logger.info("date %s end %s", date_begin, date_end)
-    return render_template('upload_file.html', name=session['user_data'])
+    return render_template('upload_file.html', name=session['user_id'], device=device, date_begin=date_begin, date_end=date_end)
 
 @app.route('/users/', methods=["POST", "GET"] )
 @login_required
@@ -161,6 +160,11 @@ def new_user():
     usr.login = data['login']
     usr.password_hash= generate_password_hash(data['password'])
     usr.email = data['email']
+    usr.name = data['name']
+    usr.surname = data['suraname']
+    usr.patronymic = data['patronymic']
+    usr.birth_date = data['birthdate']
+    usr.phone = data['phone_number']
     usr.confirmed = False
     usr.save()
     info = Info()
