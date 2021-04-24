@@ -198,7 +198,18 @@ def confirm_email(user_id, token):
     user.save()
     return '<h1>Email confirmed!</h1>'
 
-@app.route('/users/info/')
+@app.route('/users/info/', methods=['POST'])
+def get_info():
+    token = request.args.get('token')
+    user_id = request.args.get('user_id')
+    user = Users.objects(user_id=user_id).first()
+    info = Info.objects(user_id=user_id).first()
+
+    app.logger.info("%s", info.weight)
+    app.logger.info("%s", info.user_id)
+
+    return {"weight":info.weight, "height":info.height, "name":user.name, "surname":user.surname}, 200
+
 
 @app.route('/devices/register/', methods=['POST'])
 def register_device():
