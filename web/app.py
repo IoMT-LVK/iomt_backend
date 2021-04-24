@@ -44,8 +44,8 @@ def load_user(user_id):
 def authenticate():
     data = request.get_json()
     if data['login'] and data['password']:
-        confirmed, jwt, code = auth.check_user(data['login'], data['password'])
-        return jsonify({'jwt':jwt, "confirmed": confirmed}), code
+        confirmed, jwt, code, user_id = auth.check_user(data['login'], data['password'])
+        return jsonify({'jwt':jwt, "confirmed": confirmed, "user_id":user_id}), code
     return jsonify({}), 403
 
 @app.route('/')
@@ -197,6 +197,8 @@ def confirm_email(user_id, token):
     user.confirmed = True
     user.save()
     return '<h1>Email confirmed!</h1>'
+
+@app.route('/users/info/')
 
 @app.route('/devices/register/', methods=['POST'])
 def register_device():
