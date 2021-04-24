@@ -154,7 +154,7 @@ def download_file():
 @csrf.exempt
 def new_user():
     data = request.get_json()
-    man = Users.objects(login=data['email']).first()
+    man = Users.objects(email=data['email']).first()
     if man:
         if man.confirmed:
             return {"error":"email"}, 200
@@ -184,7 +184,7 @@ def new_user():
     link = 'http://iomt.lvk.cs.msu.su/confirm_email/' + id +'/'+ token
     msg.body = 'Your link is {}'.format(link)
     mail.send(msg)
-    return "", 200
+    return {"error":""}, 200
 
 @app.route('/confirm_email/<user_id>/<token>')
 @csrf.exempt
