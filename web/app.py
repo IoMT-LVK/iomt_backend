@@ -202,6 +202,8 @@ def confirm_email(user_id, token):
 def get_info():
     token = request.args.get('token')
     user_id = request.args.get('user_id')
+    if not token or not user_id or not auth.check_token(token):
+        return {}, 403
     user = Users.objects(user_id=user_id).first()
     info = Info.objects(user_id=user_id).first()
 
@@ -210,13 +212,12 @@ def get_info():
 
     return {"weight":info.weight, "height":info.height, "name":user.name, "surname":user.surname}, 200
 
-
 @app.route('/devices/register/', methods=['POST'])
 def register_device():
     token = request.args.get('token')
     user_id = request.args.get('id')
     if not token or not user_id or not auth.check_token(token):
-        return "", 403
+        return {}, 403
     data = request.json
     device = Userdevices()
     device.user_id = user_id
