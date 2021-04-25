@@ -18,8 +18,6 @@ app.config['MONGODB_SETTINGS'] = {
     'host': 'localhost'
 }
 app.config.from_pyfile('config.cfg')
-# app.config['WTF_CSRF_CHECK_DEFAULT'] = False
-# app.config['SESSION_COOKIE_SECURE'] = False
 
 manager = LoginManager(app)
 manager.init_app(app)
@@ -60,12 +58,9 @@ def login():
     form = LoginForm()
     app.logger.info('csrf %s', form.csrf_token)
     if request.method == 'POST':
-        app.logger.info('data %s %s', form.username.data, form.password.data)
         operator = Operators.objects(login=form.username.data).first()
         if operator and operator.password_valid(form.password.data):
-            app.logger.info('Success login!')
             login_user(operator)
-            app.logger.info('auth %s', current_user.is_authenticated)
             return redirect('http://iomt.lvk.cs.msu.su/')
         else:
             tmp = list(form.username.errors)
@@ -84,7 +79,6 @@ def get_data():
     if request.method == 'POST':
         form = UserList()
         user_id = form.us_list.data
-
         form2 = UserData()
         devices = []
         session["user_id"] = user_id
@@ -97,7 +91,7 @@ def get_data():
     else:
         form = UserList()
         user_list = []
-        for u in Users.objects:
+        for u in Info.objects:
             user_list.append((u.user_id, "{} {} {}".format(u.name, u.surname, u.patronymic)))
         form.us_list.choices = user_list
         return render_template('data.html', form=form)
@@ -111,7 +105,6 @@ def get_data_second():
     date_end = form.date_end.data
     # params = form.params.data
     # TODO
-    app.logger.info("date %s end %s", date_begin, date_end)
     return render_template('upload_file.html', name=session['user_id'], device=device, date_begin=date_begin, date_end=date_end)
 
 @app.route('/users/', methods=["POST", "GET"] )
@@ -208,11 +201,10 @@ def get_info():
     if not token or not user_id or not auth.check_token(token):
         return {}, 403
     if request.method == 'GET':
-        user = Users.objects(user_id=user_id).first()
         info = Info.objects(user_id=user_id).first()
         weight = 0 if not info.weight else info.weight
         height = 0 if not info.height else info.height
-        return {"weight":info.weight, "height":info.height, "name":user.name, "surname":user.surname}, 200
+        return {"weight":weight, "height":height, "name":info.name, "surname":info.surname}, 200
     else:
         data = request.get_json()
         info = Info.objects(user_id=user_id).first()
