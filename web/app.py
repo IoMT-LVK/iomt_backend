@@ -96,7 +96,7 @@ def get_data():
         form.us_list.choices = user_list
         return render_template('data.html', form=form)
 
-@app.route('/data/next', methods=["POST", "GET"])
+@app.route('/data/next/', methods=["POST", "GET"])
 @login_required
 def get_data_second():
     form = UserData()
@@ -113,14 +113,14 @@ def user_info():
     if request.method == 'GET':
         form = UserList()
         user_list = []
-        for u in Users.objects:
+        for u in Info.objects:
             user_list.append((u.user_id, "{} {} {}".format(u.surname, u.name, u.patronymic)))
         form.us_list.choices = user_list
         return render_template('user_info.html', form=form)
     else:
         form = UserList()
         d = {}
-        q = Users.objects(user_id=form.us_list.data).first()
+        q = Info.objects(user_id=form.us_list.data).first()
         for i in q:
             d[i] = q[i]
         return render_template('user_info_data.html', user=d)
@@ -133,7 +133,7 @@ def devices():
     for item in objects:
         if not item.device in devices:
             devices[item.device] = []
-        devices[item.device].append([item.sensor, item.sensor_name])
+        devices[item.device].append([])
     return render_template('devices.html', devices=devices)
 
 @app.route('/download/')
@@ -220,7 +220,7 @@ def get_info():
 @app.route('/devices/register/', methods=['POST'])
 def register_device():
     token = request.args.get('token')
-    user_id = request.args.get('id')
+    user_id = request.args.get('user_id')
     if not token or not user_id or not auth.check_token(token):
         return {}, 403
     data = request.get_json()
@@ -246,7 +246,7 @@ def register_device():
 @app.route('/devices/get/', methods=['GET'])
 def get_user_devices():
     token = request.args.get('token')
-    user_id = request.args.get('id')
+    user_id = request.args.get('user_id')
     if not token or not user_id or not auth.check_token(token):
         return {}, 403
     objects = Userdevices.objects(user_id=user_id)
@@ -259,7 +259,7 @@ def get_user_devices():
 @app.route('/devices/types/', methods=['GET'])
 def get_devices():
     token = request.args.get('token')
-    user_id = request.args.get('id')
+    user_id = request.args.get('user_id')
     if not token or not user_id or not auth.check_token(token):
         return {}, 403
     devices = []
