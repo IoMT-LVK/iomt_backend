@@ -204,7 +204,8 @@ def get_info():
         info = Info.objects(user_id=user_id).first()
         weight = 0 if not info.weight else info.weight
         height = 0 if not info.height else info.height
-        return {"weight":weight, "height":height, "name":info.name, "surname":info.surname}, 200
+        return {"weight":weight, "height":height, "name":info.name, "surname":info.surname,
+                "patronymic":info.patronymic, "email": info.email, "birthdate":info.birth_date, "phone_number": info.phone}, 200
     else:
         data = request.get_json()
         info = Info.objects(user_id=user_id).first()
