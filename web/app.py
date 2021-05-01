@@ -195,6 +195,7 @@ def confirm_email(user_id, token):
     return '<h1>Email confirmed!</h1>'
 
 @app.route('/users/info/', methods=['GET', 'POST'])
+@csrf.exempt
 def get_info():
     token = request.args.get('token')
     user_id = request.args.get('user_id')
@@ -217,6 +218,7 @@ def get_info():
         info.patronymic = data['patronymic']
         info.birth_date = data['birthdate']
         info.phone = data['phone_number']
+        return {}, 200
 
 @app.route('/devices/register/', methods=['POST'])
 def register_device():
@@ -267,6 +269,14 @@ def get_devices():
     for obj in Devices.objects():
         devices.append(obj.device_type)
     return jsonify({"devices": devices}), 200
+
+@app.route('/jwt/', methods=['GET'])
+def get_devices():
+    token = request.args.get('token')
+    if not token or not auth.check_token(token):
+        return jsonify({"valid":False})
+    else:
+        return jsonify({"valid":True})
 
 @app.route('/logout/')
 @login_required

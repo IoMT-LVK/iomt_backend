@@ -26,7 +26,7 @@ def check_user(login, password):
 
 def check_token(token):
     try:
-        print(jwt.decode(token, key, algorithms=["HS256"]))
+        jwt.decode(token, key, algorithms=["HS256"])
     except jwt.ExpiredSignatureError:
         return False
     except jwt.InvalidSignatureError:

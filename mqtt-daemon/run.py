@@ -48,7 +48,7 @@ class MQTT_Client:
     def on_message(self, pvtClient, userdata, msg):
         global insert_bulk
         data = msg.payload.decode()
-        topic = msg.topic                   # s/username_device/data
+        topic = msg.topic                   # s/username/device/data
         logger.info(topic)
 
         usr_device = topic.split('/')[1]
@@ -63,7 +63,7 @@ class MQTT_Client:
 
         insert_bulk[usr_device].append(data)
 
-        if len(insert_bulk[usr_device]) > 1000:
+        if len(insert_bulk[usr_device]) > 1:
 
             sensors = get_sensors(usr_device)
             #res = clientdb.execute("insert into {} ({}) values".format(usr_device, sensors), insert_bulk[usr_device])
