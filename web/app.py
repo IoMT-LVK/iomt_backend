@@ -220,6 +220,7 @@ def get_info():
         info.patronymic = data['patronymic']
         info.birth_date = data['birthdate']
         info.phone = data['phone_number']
+        info.save()
         return {}, 200
 
 @app.route('/devices/register/', methods=['POST'])
