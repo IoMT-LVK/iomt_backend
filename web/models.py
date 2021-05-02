@@ -54,6 +54,7 @@ class Operators(db.Document, UserMixin):
 class Devices(db.Document):
     """Devices and their sensors"""
     device_type = db.StringField()
+    prefix = db.StringField()
     create_str = db.StringField()
 
 class Userdevices(db.Document):

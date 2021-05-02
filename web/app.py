@@ -267,7 +267,7 @@ def get_devices():
         return {}, 403
     devices = []
     for obj in Devices.objects():
-        devices.append(obj.device_type)
+        devices.append({"device_type": obj.device_type, "prefix": obj.prefix})
     return jsonify({"devices": devices}), 200
 
 @app.route('/jwt/', methods=['GET'])
