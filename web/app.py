@@ -173,6 +173,8 @@ def new_user():
     info.patronymic = data['patronymic']
     info.birth_date = data['birthdate']
     info.phone = data['phone_number']
+    info.weight = 0
+    info.height = 0
     info.save()
 
     token = s.dumps(data['email'], salt='email-confirm')
@@ -221,6 +223,7 @@ def get_info():
         return {}, 200
 
 @app.route('/devices/register/', methods=['POST'])
+@csrf.exempt
 def register_device():
     token = request.args.get('token')
     user_id = request.args.get('user_id')
@@ -240,7 +243,7 @@ def register_device():
         return {}, 403
 
     create_str = obj.create_str.format(table_name)
-    app.logger.log("CREATE %s", create_str)
+    app.logger.info("CREATE %s", create_str)
 
     clientdb = Client(host='localhost', password = click_password)
     clientdb.execute(create_str)
