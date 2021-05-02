@@ -271,7 +271,7 @@ def get_devices():
     return jsonify({"devices": devices}), 200
 
 @app.route('/jwt/', methods=['GET'])
-def get_devices():
+def cjwt():
     token = request.args.get('token')
     if not token or not auth.check_token(token):
         return jsonify({"valid":False})
