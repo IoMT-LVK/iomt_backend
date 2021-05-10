@@ -4,17 +4,30 @@ import time
 import logging
 import json
 from clickhouse_driver import Client
+import jwt
+from datetime import datetime
 
 import sys
 sys.path.append('..')
 
-from web.sensors import get_sensors
 
 clientdb = Client(host='localhost')
 topicName = "c/#"
 host = "localhost"
 QOS_val = 2
 insert_bulk = {}
+key = 'secret'
+
+
+def token():
+    t = {
+        "sub": "mqttUser",
+        "iat": int(datetime.timestamp(datetime.now())),
+        "exp": int(datetime.timestamp(datetime.now())) + 3.11e+7,
+        "subs": ["c/#"],
+        "publ": ["s/#"]
+    }
+    return jwt.encode(t, key, algorithm="HS256")
 
 
 class MQTT_Client:
@@ -27,8 +40,10 @@ class MQTT_Client:
         self.client.on_connect = self.on_connect
         self.client.on_message = self.on_message
         self.client.on_log = self.on_log
+        self.client.username_pw_set(username="", password=jwt.encode(token(), key, algorithm="HS256"))
 
     def loop(self):
+        self.client.username_pw_set(username="stackoverflow", password="stackoverflow")
         self.client.connect(self.host)
         time.sleep(2)
         self.client.loop_forever()
@@ -51,7 +66,7 @@ class MQTT_Client:
         topic = msg.topic                   # s/username/device/data
         logger.info(topic)
 
-        usr_device = topic.split('/')[1]
+        usr_device = topic.split('/')[1] + topic.split('/')[2].replace(':', '')
 
         data = json.loads(data)
         # data['Millisec'] = data['Clitime'].split('.')[1]
@@ -65,7 +80,6 @@ class MQTT_Client:
 
         if len(insert_bulk[usr_device]) > 1:
 
-            sensors = get_sensors(usr_device)
             #res = clientdb.execute("insert into {} ({}) values".format(usr_device, sensors), insert_bulk[usr_device])
 
             res = clientdb.execute(
