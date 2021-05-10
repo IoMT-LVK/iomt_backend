@@ -238,7 +238,8 @@ def register_device():
     device.device_type = data['device_type']
     device.save()
 
-    table_name = user_id + '_' + data['device_id']
+    table_name = user_id + '_' + data['device_id'].replace(':', '')
+    app.logger.info("TABLE %s", table_name)
     obj = Devices.objects(device_type=data['device_type']).first()
     if not obj:
         return {}, 403
