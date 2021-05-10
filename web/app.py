@@ -274,6 +274,17 @@ def get_devices():
         devices.append({"device_type": obj.device_type, "prefix": obj.prefix})
     return jsonify({"devices": devices}), 200
 
+@app.route('/devices/delete/', methods=['GET'])
+def delete_device():
+    token = request.args.get('token')
+    user_id = request.args.get('user_id')
+    device_id = request.args.get('id')
+    if not token or not user_id or not auth.check_token(token):
+        return {}, 403
+    d = Userdevices.objects(user_id=user_id, device_id=device_id).first()
+    d.delete()
+    return {}, 200
+
 @app.route('/jwt/', methods=['GET'])
 def cjwt():
     token = request.args.get('token')
