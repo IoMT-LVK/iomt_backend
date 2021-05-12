@@ -18,12 +18,13 @@ QOS_val = 2
 insert_bulk = {}
 key = 'secret'
 
+count = 0
 
 def token():
     t = {
         "sub": "mqttUser",
         "iat": int(datetime.timestamp(datetime.now())),
-        "exp": int(datetime.timestamp(datetime.now())) + 3.11e+7,
+        "exp": int(datetime.timestamp(datetime.now())) + 311000000,
         "subs": ["c/#"],
         "publ": ["s/#"]
     }
@@ -38,13 +39,13 @@ class MQTT_Client:
         self.qos = qos_val
         self.host = broker_host
         self.client.on_connect = self.on_connect
+        self.client.on_disconnect = self.on_disconnect
         self.client.on_message = self.on_message
         self.client.on_log = self.on_log
-        self.client.username_pw_set(username="", password=jwt.encode(token(), key, algorithm="HS256"))
+        self.client.username_pw_set(username="", password=token())
 
     def loop(self):
-        self.client.username_pw_set(username="stackoverflow", password="stackoverflow")
-        self.client.connect(self.host)
+        self.client.connect(self.host, port=8883)
         time.sleep(2)
         self.client.loop_forever()
 
@@ -52,35 +53,35 @@ class MQTT_Client:
         if (rc == 0):
             logger.info("Connected! Return Code:" + str(rc))
             result = self.client.subscribe(self.topic, self.qos)
-
         elif (rc == 5):
             logger.error("Authentication Error! Return Code: " + str(rc))
             self.client.disconnect()
+
+    def on_disconnect(self, client, userdata, rc):
+        self.client.username_pw_set(username="", password=token())
 
     def on_log(self, opic, userdata, level, buf):
         logger.info("Logs: " + str(buf))
 
     def on_message(self, pvtClient, userdata, msg):
-        global insert_bulk
+        global insert_bulk, count
         data = msg.payload.decode()
-        topic = msg.topic                   # s/username/device/data
-        logger.info(topic)
+        topic = msg.topic                   # c/username/device/data
 
-        usr_device = topic.split('/')[1] + topic.split('/')[2].replace(':', '')
+        count += 1
+
+        usr_device = topic.split('/')[1] + '_' + topic.split('/')[2].replace(':', '')
+        logger.info(usr_device)
 
         data = json.loads(data)
-        # data['Millisec'] = data['Clitime'].split('.')[1]
-        # data['Clitime'] = data['Clitime'].split('.')[0]
-        # data["Clitime"] = datetime.datetime.strptime(data["Clitime"], '%Y-%m-%d %H:%M:%S')
 
+        logger.info(str(count) + data)
         if usr_device not in insert_bulk.keys():
             insert_bulk[usr_device] = []
 
         insert_bulk[usr_device].append(data)
 
-        if len(insert_bulk[usr_device]) > 1:
-
-            #res = clientdb.execute("insert into {} ({}) values".format(usr_device, sensors), insert_bulk[usr_device])
+        if len(insert_bulk[usr_device]) == 1:
 
             res = clientdb.execute(
                 'insert into ' + usr_device + ' (Clitime, Millisec, HeartRate, RespRate, Insp, Exp, Steps, Activity, Cadence) values',
