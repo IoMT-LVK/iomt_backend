@@ -10,8 +10,9 @@ from datetime import datetime
 import sys
 sys.path.append('..')
 
+click_password = "iomtpassword123"
 
-clientdb = Client(host='localhost')
+clientdb = Client(host='localhost', password = click_password)
 topicName = "c/#"
 host = "localhost"
 QOS_val = 2
@@ -75,7 +76,7 @@ class MQTT_Client:
 
         data = json.loads(data)
 
-        logger.info(str(count) + data)
+        logger.info(str(count) + str(data))
         if usr_device not in insert_bulk.keys():
             insert_bulk[usr_device] = []
 
