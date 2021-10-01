@@ -16,7 +16,7 @@ def check_user(login, password):
         token = {
             "sub": "mqttUser",
             "iat": int(datetime.timestamp(datetime.now())),
-            "exp": int(datetime.timestamp(datetime.now())) + 300,
+            "exp": int(datetime.timestamp(datetime.now())) + 86400,
             "subs": ["s/#"],
             "publ": ["c/" + user.user_id + "/#"]
         }

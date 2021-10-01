@@ -80,6 +80,8 @@ class MQTT_Client:
         if usr_device not in insert_bulk.keys():
             insert_bulk[usr_device] = []
 
+        data['Clitime'] = datetime.strptime(data["Clitime"], '%Y-%m-%d %H:%M:%S')
+
         insert_bulk[usr_device].append(data)
 
         if len(insert_bulk[usr_device]) == 1:

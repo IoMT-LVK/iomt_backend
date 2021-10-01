@@ -56,6 +56,7 @@ class Devices(db.Document):
     device_type = db.StringField()
     prefix = db.StringField()
     create_str = db.StringField()
+    columns = db.StringField()
 
 class Userdevices(db.Document):
     """User registered devices"""

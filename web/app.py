@@ -5,6 +5,8 @@ from models import db, Users, Operators, Devices, Userdevices, Info
 from werkzeug.security import generate_password_hash
 from flask_login import current_user, login_user, login_required, logout_user, LoginManager
 import auth
+import random
+import csv
 import uuid
 from clickhouse_driver import Client
 import logging
@@ -32,6 +34,28 @@ click_password = "iomtpassword123"
 gunicorn_error_logger = logging.getLogger('gunicorn.error')
 app.logger.handlers.extend(gunicorn_error_logger.handlers)
 app.logger.setLevel(logging.DEBUG)
+
+
+def create_file(user_id, device_id, begin, end):
+    name = user_id + '_' + device_id.replace(':', '')
+    query = "select * from {} where Clitime between '{}' and '{}'".format(name, begin, end)
+    clientdb = Client(host='localhost', password = click_password)
+    res = clientdb.execute(query)
+    file_name = name + '_' + str(random.randint(1, 1000000)) + '.csv'
+
+    d = Userdevices.objects(user_id=user_id).first()
+    d_type = d.device_type
+
+    device = Devices.objects(device_type=d_type).first()
+    columns = device.columns.split(',')
+
+    with open('files/' + file_name, 'w+') as out:
+        csv_out = csv.writer(out)
+        csv_out.writerow(columns)
+        for row in res:
+            csv_out.writerow(row)
+
+    return file_name
 
 @manager.user_loader
 def load_user(user_id):
@@ -101,11 +125,12 @@ def get_data():
 def get_data_second():
     form = UserData()
     device = form.device.data
+    app.logger.info(device)
     date_begin = form.date_begin.data
     date_end = form.date_end.data
-    # params = form.params.data
-    # TODO
-    return render_template('upload_file.html', name=session['user_id'], device=device, date_begin=date_begin, date_end=date_end)
+    
+    file = create_file(session['user_id'], device, date_begin, date_end)
+    return render_template('upload_file.html', name=session['user_id'], file=file)
 
 @app.route('/users/', methods=["POST", "GET"] )
 @login_required
@@ -136,12 +161,10 @@ def devices():
         devices[item.device].append([])
     return render_template('devices.html', devices=devices)
 
-@app.route('/download/')
+@app.route('/download/<file>')
 @login_required
-def download_file():
-    #TODO
-    path = 'file.txt'
-    return send_file(path, as_attachment=True)
+def download_file(file):
+    return send_file('files/' + file, as_attachment=True)
 
 @app.route('/users/register/', methods=['POST'])
 @csrf.exempt
