@@ -1,0 +1,25 @@
+{% extends 'header.html' %}
+
+{% block container %}
+
+<h1>Шаг 1</h1>
+
+<form class="contact_form" method="POST" action="/data/", name="data1">
+
+<ul>
+    {{ form.csrf_token() }}
+    <li>
+         <br>
+         <h2>Выберите пользователя:</h2>
+    </li>
+    <li>
+        {{ form.us_list.label }}
+        {{ form.us_list }}
+
+    </li>
+</ul>
+    {{ form.submit(class_ = "submit") }}
+
+</form>
+
+{% endblock %}

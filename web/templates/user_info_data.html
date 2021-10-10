@@ -1,0 +1,13 @@
+{% extends 'header.html' %}
+
+{% block container %}
+
+<h2> {{ user.surname }} {{ user.name }} {{ user.patronymic }} </h2>
+
+<p>     Номер телефона: {{ user.phone }}</p>
+<p>     Email: {{ user.email }}</p>
+<p>     Дата рождения: {{ user.birth_date }}</p>
+<p>     Рост: {{ user.height }} см</p>
+<p>     Вес: {{ user.weight }} кг</p>
+
+{% endblock %}

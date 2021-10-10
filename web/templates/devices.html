@@ -1,0 +1,18 @@
+{% extends 'header.html' %}
+
+{% block container %}
+
+<h2>Доступные устройства</h2>
+
+    {%  for name, sensors in devices.items() %}
+
+        <h3> {{ name }} </h3>
+        <ul>
+        {% for sensor in sensors %}
+           <li> {{ sensor[0] }} - {{ sensor[1] }} </li>
+        {% endfor %}
+        </ul>
+    {% endfor %}
+
+    <a href="/devices/add/">Добавить устройство</a>
+{% endblock %}

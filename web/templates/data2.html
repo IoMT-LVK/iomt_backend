@@ -1,0 +1,30 @@
+{% extends 'header.html' %}
+
+{% block container %}
+
+<h1>Шаг 2</h1>
+
+<form class="contact_form" method="POST" action="/data/next/", name="data2">
+
+<ul>
+    {{ form.csrf_token() }}
+
+    <li>
+        {{ form.device.label }}
+        {{ form.device }}
+
+    </li>
+    <li>
+        {{ form.date_begin.label }}
+        {{ form.date_begin(placeholder="YYYY-MM-DD HH:MM:SS") }}
+    </li>
+    <li>
+        {{ form.date_end.label }}
+        {{ form.date_end(placeholder="YYYY-MM-DD HH:MM:SS") }}
+    </li>
+
+</ul>
+    {{ form.submit(class_ = "submit") }}
+</form>
+
+{% endblock %}
