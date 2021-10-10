@@ -48,7 +48,7 @@ RUN apt-get update && apt-get -y install mosquitto supervisor
 
 RUN mkdir -p  /var/log/supervisor
 
-COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+COPY web/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY mqtt-daemon /iomt-project/mqtt-daemon
 COPY mqtt-daemon/mosquitto.conf /etc/mosquitto.conf
 #RUN apt-get install -y mosquitto-auth-plugin

@@ -18,7 +18,7 @@ services:
       
   iomt_01:
     build:
-      context: ./web
+      context: .
     ports:
       - "1344:1344"
     networks:
