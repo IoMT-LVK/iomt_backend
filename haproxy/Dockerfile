@@ -15,4 +15,4 @@ COPY haproxy.cfg /usr/local/etc/haproxy/haproxy.cfg
 #CMD ["bash", "/haproxy-start"]
 
 # Expose ports
-EXPOSE 1367
+EXPOSE 1883
