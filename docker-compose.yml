@@ -1,0 +1,33 @@
+version: '3.9'
+
+services:
+  haproxy:
+    depends_on:
+      - iomt_01
+    build: 
+      context: ./haproxy
+    environment:
+      - BALANCE=leastconn
+    volumes:
+      - ./haproxy/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg
+    ports:
+      - "8080:8080"
+      - "1883:1883"
+    networks:
+      - web
+      
+  iomt_01:
+    build:
+      context: ./iomt-project
+    ports:
+      - "1344:1344"
+    networks:
+      - web
+
+     
+  
+ 
+
+networks:
+  web:
+    driver: bridge
