@@ -11,8 +11,7 @@ services:
     volumes:
       - ./haproxy/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg
     ports:
-      - "8080:8080"
-      - "1883:1883"
+      - "1344:1344"
     networks:
       - web
       
@@ -20,7 +19,8 @@ services:
     build:
       context: .
     ports:
-      - "1344:1344"
+      - "8080:8080"
+      - "1883:1883"
     networks:
       - web
 

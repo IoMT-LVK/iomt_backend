@@ -61,7 +61,7 @@ RUN git clone https://github.com/wiomoc/mosquitto-jwt-auth.git && \
 
 RUN find / -name "libmosquitto_jwt_auth.so"
 RUN cp /mosquitto-jwt-auth/target/release/libmosquitto_jwt_auth.so /etc/mosquitto/libmosquitto_jwt_auth.so
-
+RUN JWT_KEY=123
 
 EXPOSE 1883 
 CMD ["supervisord", "-n", "-c", "/etc/supervisor/supervisord.conf"]
