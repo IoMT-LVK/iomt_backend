@@ -18,6 +18,8 @@ services:
   iomt_01:
     build:
       context: .
+    environment:
+      - JWT_KEY=123
     ports:
       - "8080:8080"
       - "1883:1883"
@@ -31,3 +33,4 @@ services:
 networks:
   web:
     driver: bridge
+    
