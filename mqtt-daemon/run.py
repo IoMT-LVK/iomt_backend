@@ -46,7 +46,7 @@ class MQTT_Client:
         self.client.username_pw_set(username="", password=token())
 
     def loop(self):
-        self.client.connect(self.host, port=8883)
+        self.client.connect(self.host, port=1883)
         time.sleep(2)
         self.client.loop_forever()
 
@@ -113,10 +113,5 @@ if __name__ == '__main__':
 
     logger.info("started")
 
-    with daemon.DaemonContext(
-            stdout=handler.stream,
-            stderr=handler.stream,
-            pidfile=daemon.pidfile.PIDLockFile('/var/run/mydaemon/dbpid.pid'),
-            files_preserve=[handler.stream]
-    ) as context:
-        run()
+    
+    run()
