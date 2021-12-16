@@ -13,11 +13,12 @@ import logging
 from flask_mail import Mail, Message
 from itsdangerous import URLSafeTimedSerializer, SignatureExpired
 
+
 app = Flask(__name__)
 
 app.config['MONGODB_SETTINGS'] = {
     'db': 'data',
-    'host': 'localhost'
+    'host': '172.30.7.214'
 }
 app.config.from_pyfile('config.cfg')
 
@@ -39,7 +40,7 @@ app.logger.setLevel(logging.DEBUG)
 def create_file(user_id, device_id, begin, end):
     name = user_id + '_' + device_id.replace(':', '')
     query = "select * from {} where Clitime between '{}' and '{}'".format(name, begin, end)
-    clientdb = Client(host='localhost', password = click_password)
+    clientdb = Client(host='172.30.7.214', password = click_password)
     res = clientdb.execute(query)
     file_name = name + '_' + str(random.randint(1, 1000000)) + '.csv'
 
@@ -270,7 +271,7 @@ def register_device():
     create_str = obj.create_str.format(table_name)
     app.logger.info("CREATE %s", create_str)
 
-    clientdb = Client(host='localhost', password = click_password)
+    clientdb = Client(host='172.30.7.214', password = click_password)
     clientdb.execute(create_str)
     return {}, 200
 

@@ -1,3 +1,4 @@
+from itsdangerous import base64_encode
 import paho.mqtt.client as mqtt
 import daemon.pidfile
 import time
@@ -6,18 +7,19 @@ import json
 from clickhouse_driver import Client
 import jwt
 from datetime import datetime
+#import base64
 
 import sys
 sys.path.append('..')
 
 click_password = "iomtpassword123"
 
-clientdb = Client(host='localhost', password = click_password)
+clientdb = Client(host='172.30.7.214', password = click_password)
 topicName = "c/#"
-host = "localhost"
+host = "172.30.7.214"
 QOS_val = 2
 insert_bulk = {}
-key = 'secret'
+key = base64_encode("MTIz")
 
 count = 0
 

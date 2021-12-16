@@ -11,7 +11,7 @@ services:
     volumes:
       - ./haproxy/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg
     ports:
-      - "1344:1344"
+      - "1883:1883"
     networks:
       - web
       
@@ -20,12 +20,16 @@ services:
       context: .
     environment:
       - JWT_KEY=MTIz
-    ports:
-      - "8080:8080"
-      - "1883:1883"
     networks:
       - web
-
+  
+  web-site:
+    build:
+      context: ./web
+    ports:
+      - "80:80"
+    networks:
+      - web
      
   
  
