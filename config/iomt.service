@@ -5,11 +5,11 @@ Description=Gunicorn instance to serve iomt project
 After=network.target
 
 [Service]
-User=root
+User=kh9iz
 Group=www-data
-WorkingDirectory=/home/anikevich.yu/iomt-project/web/
-Environment="PATH=/home/anikevich.yu/iomt-project/.env/bin"
-ExecStart=/home/anikevich.yu/iomt-project/.env/bin/gunicorn --workers 3 --bind unix:iomt.sock -m 007 app:app --log-file /home/anikevich.yu/iomt-project/gunicorn.log --log-level DEBUG --reload
+WorkingDirectory=/home/kh9iz/iomt-project/web/
+Environment="PATH=/home/kh9iz/iomt-project/.env/bin"
+ExecStart=/home/kh9iz/iomt-project/.env/bin/gunicorn --workers 3 --bind unix:iomt.sock -m 007 app:app --log-file /home/kh9iz/iomt-project/gunicorn.log --log-level DEBUG --reload
 
 [Install]
 WantedBy=multi-user.target

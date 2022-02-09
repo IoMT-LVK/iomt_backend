@@ -1,0 +1,23 @@
+{% extends 'header.html' %}
+
+{% block container %}
+    <form method="delete">
+        <ol class="square">
+            {% for op in operators %}
+                <li>{{ op.login }}
+                    <button onclick="del('{{ op.login }}')" name="{{ op.login }}">Удалить</button>
+                </li>
+            {% endfor %}
+        </ol>
+    <a href="add-operator">Создать оператора</a>
+    </form>
+
+    <script type="text/javascript">
+        function del(user){
+            if (confirm("Удалить пользователя " + user + "?")) {
+                alert("Deleting...");
+            }
+        }
+    </script>
+
+{% endblock %}

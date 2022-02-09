@@ -1,5 +1,4 @@
 import jwt
-import os
 from models import Users
 from datetime import datetime
 

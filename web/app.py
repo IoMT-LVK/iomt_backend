@@ -1,7 +1,7 @@
-from flask import Flask, render_template, request, redirect, session, send_file, jsonify
+from flask import Flask, render_template, request, redirect, session, send_file, jsonify, url_for, abort
 from forms import *
 from flask_wtf.csrf import CSRFProtect
-from models import db, Users, Operators, Devices, Userdevices, Info
+from models import db, Users, Operators, Devices, Userdevices, Info, Admins
 from werkzeug.security import generate_password_hash
 from flask_login import current_user, login_user, login_required, logout_user, LoginManager
 import auth
@@ -77,6 +77,7 @@ def main():
     else:
         return redirect('http://iomt.lvk.cs.msu.su/data/')
 
+
 @app.route('/login/', methods=['GET', 'POST'])
 def login():
     form = LoginForm()
@@ -85,16 +86,53 @@ def login():
         operator = Operators.objects(login=form.username.data).first()
         if operator and operator.password_valid(form.password.data):
             login_user(operator)
-            return redirect('http://iomt.lvk.cs.msu.su/')
-        else:
-            tmp = list(form.username.errors)
-            if not operator:
-                tmp.append("Пользователь не зарегистрирован")
-                form.username.errors = tmp
-            elif not operator.password_valid(form.password.data):
-                tmp.append("Неверное имя или пароль")
-                form.password.errors = tmp
+            return redirect(url_for('main'))
+        tmp = list(form.username.errors)
+        if not operator:
+            tmp.append("Пользователь не зарегистрирован")
+            form.username.errors = tmp
+        elif not operator.password_valid(form.password.data):
+            tmp.append("Неверное имя или пароль")
+            form.password.errors = tmp
     return render_template("login.html", form=form)
+
+
+@app.route('/admins/', methods=['GET'])
+@login_required
+def admin_panel():
+    if type(current_user._get_current_object()) is not Admins:
+        abort(404)
+    app.logger.info(f"Admin ({current_user.login}) come on admin panel")
+    ops = Operators.objects
+    return render_template("admin_panel.html", operators=ops)
+
+
+@app.route('/admins/add-operator/', methods=['GET', 'POST'])
+@login_required
+def admin_add_operator():
+    form = AddOperator()
+    if type(current_user._get_current_object()) is not Admins:
+        abort(404)
+    if form.validate_on_submit():
+        app.logger.info(f"Admin ({current_user.login}) created operator {form.login.data}")
+        op = Admins() if form.is_admin.data else Users()
+        op.login = form.login.data
+        op.password = form.password.data
+        op.save()
+        return redirect('/admins')
+
+    return render_template("add_operator.html", form=form)
+
+
+@app.route('/admins/delete-operator/', methods=['POST'])
+@login_required
+def admin_delete_operator():
+    # TODO!!!
+    if type(current_user._get_current_object()) is not Admins:
+        abort(404)
+    app.logger.info(f"Admin ({current_user.login}) come on admin panel")
+    ops = Operators.objects
+    return render_template("admin_panel.html", operators=ops)
 
 
 @app.route('/data/', methods=["POST", "GET"])
@@ -166,6 +204,7 @@ def devices():
 def download_file(file):
     return send_file('files/' + file, as_attachment=True)
 
+
 @app.route('/users/register/', methods=['POST'])
 @csrf.exempt
 def new_user():
@@ -174,17 +213,17 @@ def new_user():
     if man_info:
         man_user = Users.objects(user_id=man_info.user_id).first()
         if man_user.confirmed:
-            return {"error":"email"}, 200
+            return {"error": "email"}, 200
         else:
             man_info.delete()
             man_user.delete()
     if Users.objects(login=data['login']).first():
-        return {"error":"login"}, 200
+        return {"error": "login"}, 200
     id = uuid.uuid4().hex
     usr = Users()
     usr.user_id = id
     usr.login = data['login']
-    usr.password_hash= generate_password_hash(data['password'])
+    usr.password_hash = generate_password_hash(data['password'])
     usr.confirmed = False
     usr.save()
 
