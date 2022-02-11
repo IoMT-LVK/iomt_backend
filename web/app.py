@@ -1,4 +1,6 @@
 from flask import Flask, render_template, request, redirect, session, send_file, jsonify, url_for, abort
+from mongoengine import DoesNotExist
+
 from forms import *
 from flask_wtf.csrf import CSRFProtect
 from models import db, Users, Operators, Devices, Userdevices, Info, Admins
@@ -115,7 +117,7 @@ def admin_add_operator():
         abort(404)
     if form.validate_on_submit():
         app.logger.info(f"Admin ({current_user.login}) created operator {form.login.data}")
-        op = Admins() if form.is_admin.data else Users()
+        op = Admins() if form.is_admin.data else Operators()
         op.login = form.login.data
         op.password = form.password.data
         op.save()
@@ -124,15 +126,18 @@ def admin_add_operator():
     return render_template("add_operator.html", form=form)
 
 
-@app.route('/admins/delete-operator/', methods=['POST'])
+@app.route('/admins/delete-operator/<string:login_for_del>', methods=['GET'])
 @login_required
-def admin_delete_operator():
-    # TODO!!!
+def admin_delete_operator(login_for_del):
     if type(current_user._get_current_object()) is not Admins:
         abort(404)
-    app.logger.info(f"Admin ({current_user.login}) come on admin panel")
-    ops = Operators.objects
-    return render_template("admin_panel.html", operators=ops)
+    app.logger.info(f"Admin ({current_user.login}) deleted user ...")
+    try:
+        ops = Operators.objects.get(login=login_for_del)  # TODO: same login problem
+    except DoesNotExist:
+        ops = Admins.objects.get_or_404(login=login_for_del)
+    ops.delete()
+    return redirect('/admins')
 
 
 @app.route('/data/', methods=["POST", "GET"])
