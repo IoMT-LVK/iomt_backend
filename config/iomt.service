@@ -9,7 +9,7 @@ User=kh9iz
 Group=www-data
 WorkingDirectory=/home/kh9iz/iomt-project/web/
 Environment="PATH=/home/kh9iz/iomt-project/.env/bin"
-ExecStart=/home/kh9iz/iomt-project/.env/bin/gunicorn --workers 3 --bind unix:iomt.sock -m 007 app:app --log-file /home/kh9iz/iomt-project/gunicorn.log --log-level DEBUG --reload
+ExecStart=/home/kh9iz/iomt-project/.env/bin/gunicorn --config /home/kh9iz/iomt-project/config/gunicorn.conf.py
 
 [Install]
 WantedBy=multi-user.target

@@ -17,25 +17,25 @@ from itsdangerous import URLSafeTimedSerializer, SignatureExpired
 
 app = Flask(__name__)
 
-app.config['MONGODB_SETTINGS'] = {
-    'db': 'data',
-    'host': 'localhost'
-}
-app.config.from_pyfile('config.cfg')
-
-manager = LoginManager(app)
-manager.init_app(app)
-
-db.init_app(app)
-csrf = CSRFProtect(app)
-s = URLSafeTimedSerializer(app.config['SECRET_KEY'])
-mail = Mail(app)
-
-click_password = "iomtpassword123"
-
+# Initializing logger
 gunicorn_error_logger = logging.getLogger('gunicorn.error')
 app.logger.handlers.extend(gunicorn_error_logger.handlers)
-app.logger.setLevel(logging.DEBUG)
+app.logger.setLevel(gunicorn_error_logger.level)
+
+# Loading configuration
+app.config.from_object('default_settings')
+config_loaded = app.config.from_envvar('FLASK_CONFIG', silent=True)
+if not config_loaded:
+    app.logger.warning("Default config was loaded. "
+                       "Change FLASK_CONFIG value to absolute path of your config file for correct loading.")
+
+db.init_app(app)  # Init mongoengine
+manager = LoginManager(app)  # Init login manager
+csrf = CSRFProtect(app)  # Init CSRF in WTForms for excluding it in interaction with phone (well...)
+url_tokenizer = URLSafeTimedSerializer(
+    app.config['SECRET_KEY'])  # Init serializer for generating email confirmation tokens
+mail = Mail(app)  # For sending confirmation emails
+clckhs_client = Client(host=app.config['CLICKHOUSE_HOST'], password=app.config['CLICKHOUSE_PASS'])  # ClickHouse config
 
 
 def create_file(user_id, device_id, begin, end):
@@ -244,7 +244,7 @@ def new_user():
     info.height = 0
     info.save()
 
-    token = s.dumps(data['email'], salt='email-confirm')
+    token = url_tokenizer.dumps(data['email'], salt='email-confirm')
     msg = Message('Confirm Email', sender='iomt.confirmation@gmail.com', recipients=[data['email']])
     link = 'http://iomt.lvk.cs.msu.su/confirm_email/' + id +'/'+ token
     msg.body = 'Your link is {}'.format(link)
@@ -255,7 +255,7 @@ def new_user():
 @csrf.exempt
 def confirm_email(user_id, token):
     try:
-        email = s.loads(token, salt='email-confirm', max_age=3600)
+        url_tokenizer.loads(token, salt='email-confirm', max_age=3600)
     except SignatureExpired:
         return '<h1>The link is expired!</h1>'
     user = Users.objects(user_id=user_id).first()
