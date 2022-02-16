@@ -39,10 +39,10 @@ clckhs_client = Client(host=app.config['CLICKHOUSE_HOST'], password=app.config['
 
 
 def create_file(user_id, device_id, begin, end):
+    """Generates file with data"""
     name = user_id + '_' + device_id.replace(':', '')
     query = "select * from {} where Clitime between '{}' and '{}'".format(name, begin, end)
-    clientdb = Client(host='localhost', password = click_password)
-    res = clientdb.execute(query)
+    res = clckhs_client.execute(query)
     file_name = name + '_' + str(random.randint(1, 1000000)) + '.csv'
 
     d = Userdevices.objects(user_id=user_id).first()
@@ -59,8 +59,10 @@ def create_file(user_id, device_id, begin, end):
 
     return file_name
 
+
 @manager.user_loader
 def load_user(user_id):
+    """Configure user loader"""
     return Operators.objects(pk=user_id).first()
 
 @app.route('/auth/', methods=['POST'])
@@ -74,28 +76,27 @@ def authenticate():
 
 @app.route('/')
 def main():
+    """Index page"""
     if not current_user.is_authenticated:
-        return redirect('http://iomt.lvk.cs.msu.su/login/')
+        return redirect(url_for('login'))
     else:
-        return redirect('http://iomt.lvk.cs.msu.su/data/')
+        return redirect(url_for('get_data'))
 
 
 @app.route('/login/', methods=['GET', 'POST'])
 def login():
+    """Login page"""
     form = LoginForm()
-    app.logger.info('csrf %s', form.csrf_token)
     if request.method == 'POST':
         operator = Operators.objects(login=form.username.data).first()
         if operator and operator.password_valid(form.password.data):
             login_user(operator)
             return redirect(url_for('main'))
-        tmp = list(form.username.errors)
+        form.validate_on_submit()
         if not operator:
-            tmp.append("Пользователь не зарегистрирован")
-            form.username.errors = tmp
+            form.username.errors.append("Пользователь не зарегистрирован")
         elif not operator.password_valid(form.password.data):
-            tmp.append("Неверное имя или пароль")
-            form.password.errors = tmp
+            form.password.errors.append("Неверное имя или пароль")
     return render_template("login.html", form=form)
 
 
@@ -163,6 +164,7 @@ def get_data():
         form.us_list.choices = user_list
         return render_template('data.html', form=form)
 
+
 @app.route('/data/next/', methods=["POST", "GET"])
 @login_required
 def get_data_second():
@@ -171,11 +173,12 @@ def get_data_second():
     app.logger.info(device)
     date_begin = form.date_begin.data
     date_end = form.date_end.data
-    
+
     file = create_file(session['user_id'], device, date_begin, date_end)
     return render_template('upload_file.html', name=session['user_id'], file=file)
 
-@app.route('/users/', methods=["POST", "GET"] )
+
+@app.route('/users/', methods=["POST", "GET"])
 @login_required
 def user_info():
     if request.method == 'GET':
@@ -193,7 +196,8 @@ def user_info():
             d[i] = q[i]
         return render_template('user_info_data.html', user=d)
 
-@app.route('/devices/', methods=["POST", "GET"] )
+
+@app.route('/devices/', methods=["POST", "GET"])
 @login_required
 def devices():
     objects = Devices.objects()
@@ -203,6 +207,7 @@ def devices():
             devices[item.device] = []
         devices[item.device].append([])
     return render_template('devices.html', devices=devices)
+
 
 @app.route('/download/<file>')
 @login_required
@@ -246,13 +251,13 @@ def new_user():
 
     token = url_tokenizer.dumps(data['email'], salt='email-confirm')
     msg = Message('Confirm Email', sender='iomt.confirmation@gmail.com', recipients=[data['email']])
-    link = 'http://iomt.lvk.cs.msu.su/confirm_email/' + id +'/'+ token
+    link = url_for('confirm_email', user_id=id, token=token, _external=True)
     msg.body = 'Your link is {}'.format(link)
     mail.send(msg)
-    return {"error":""}, 200
+    return {"error": ""}, 200
+
 
 @app.route('/confirm_email/<user_id>/<token>')
-@csrf.exempt
 def confirm_email(user_id, token):
     try:
         url_tokenizer.loads(token, salt='email-confirm', max_age=3600)
@@ -262,6 +267,7 @@ def confirm_email(user_id, token):
     user.confirmed = True
     user.save()
     return '<h1>Email confirmed!</h1>'
+
 
 @app.route('/users/info/', methods=['GET', 'POST'])
 @csrf.exempt
@@ -274,8 +280,9 @@ def get_info():
         info = Info.objects(user_id=user_id).first()
         weight = 0 if not info.weight else info.weight
         height = 0 if not info.height else info.height
-        return {"weight":weight, "height":height, "name":info.name, "surname":info.surname,
-                "patronymic":info.patronymic, "email": info.email, "birthdate":info.birth_date, "phone_number": info.phone}, 200
+        return {"weight": weight, "height": height, "name": info.name, "surname": info.surname,
+                "patronymic": info.patronymic, "email": info.email, "birthdate": info.birth_date,
+                "phone_number": info.phone}, 200
     else:
         data = request.get_json()
         info = Info.objects(user_id=user_id).first()
@@ -290,11 +297,12 @@ def get_info():
         info.save()
         return {}, 200
 
+
 @app.route('/devices/register/', methods=['POST'])
 @csrf.exempt
 def register_device():
     token = request.args.get('token')
-    user_id = request.args.get('user_id')
+    user_id = request.args.get('user_id')  # FIXME: Дыра, любой зареганый пользователь может зарегать на другого девайс
     if not token or not user_id or not auth.check_token(token):
         return {}, 403
     data = request.get_json()
@@ -314,9 +322,9 @@ def register_device():
     create_str = obj.create_str.format(table_name)
     app.logger.info("CREATE %s", create_str)
 
-    clientdb = Client(host='localhost', password = click_password)
-    clientdb.execute(create_str)
+    clckhs_client.execute(create_str)
     return {}, 200
+
 
 @app.route('/devices/get/', methods=['GET'])
 def get_user_devices():
@@ -325,11 +333,12 @@ def get_user_devices():
     if not token or not user_id or not auth.check_token(token):
         return {}, 403
     objects = Userdevices.objects(user_id=user_id)
-    devices = []
-    for obj in objects:
-        device = {"device_id": obj.device_id, "device_name": obj.device_name, "device_type": obj.device_type}
-        devices.append(device)
-    return jsonify({"devices": devices}), 200
+    user_devices = [
+        {"device_id": obj.device_id, "device_name": obj.device_name, "device_type": obj.device_type}
+        for obj in objects
+    ]
+    return jsonify({"devices": user_devices}), 200
+
 
 @app.route('/devices/types/', methods=['GET'])
 def get_devices():
@@ -337,10 +346,14 @@ def get_devices():
     user_id = request.args.get('user_id')
     if not token or not user_id or not auth.check_token(token):
         return {}, 403
-    devices = []
+    devices_types = [
+        {"device_type": obj.device_type, "prefix": obj.prefix}
+        for obj in Devices.objects()
+    ]
     for obj in Devices.objects():
-        devices.append({"device_type": obj.device_type, "prefix": obj.prefix})
-    return jsonify({"devices": devices}), 200
+        devices_types.append({"device_type": obj.device_type, "prefix": obj.prefix})
+    return jsonify({"devices": devices_types}), 200
+
 
 @app.route('/devices/delete/', methods=['GET'])
 def delete_device():
@@ -353,19 +366,22 @@ def delete_device():
     d.delete()
     return {}, 200
 
+
 @app.route('/jwt/', methods=['GET'])
 def cjwt():
     token = request.args.get('token')
     if not token or not auth.check_token(token):
-        return jsonify({"valid":False})
+        return jsonify({"valid": False})
     else:
-        return jsonify({"valid":True})
+        return jsonify({"valid": True})
+
 
 @app.route('/logout/')
 @login_required
 def logout():
     logout_user()
-    return redirect('http://iomt.lvk.cs.msu.su/login/')
+    return redirect(url_for('login'))
+
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0')
