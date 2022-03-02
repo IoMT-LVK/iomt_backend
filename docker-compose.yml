@@ -18,8 +18,16 @@ services:
   iomt_01:
     build:
       context: .
+    labels: [orbiter=true]
     environment:
       - JWT_KEY=MTIz
+    deploy:
+      mode: replicated
+      replicas: 3
+      labels: [orbiter=true]
+      update_config:
+        parallelism: 1
+        delay: 3s
     networks:
       - web
   
@@ -27,12 +35,29 @@ services:
     build:
       context: ./web
     ports:
-      - "80:80"
+      - "82:82"
     networks:
       - web
+
+  orbiter:
+    image: gianarb/orbiter
+    command: /bin/orbiter daemon --debug
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - 8005:8005
+    deploy:
+      placement:
+        constraints:
+          - node.role == manager
+      mode: replicated
+      replicas: 1
+    networks:
+      - web
+
+
      
   
- 
 
 networks:
   web:

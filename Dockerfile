@@ -11,6 +11,7 @@
 
 FROM ubuntu:18.04 AS ubuntu-app
 
+RUN sed -i'' 's/archive\.ubuntu\.com/us\.archive\.ubuntu\.com/' /etc/apt/sources.list
 RUN apt-get update && apt-get -y install sudo
 RUN useradd -m docker && echo "docker:docker" | chpasswd && adduser docker sudo
 #USER docker
