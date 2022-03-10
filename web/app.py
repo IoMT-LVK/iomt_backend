@@ -107,7 +107,9 @@ def admin_panel():
         abort(404)
     app.logger.info(f"Admin ({current_user.login}) come on admin panel")
     ops = Operators.objects
-    return render_template("admin_panel.html", operators=ops)
+    device_types = Devices.objects
+    app.logger.debug(f"Devices: {device_types}")
+    return render_template("admin_panel.html", operators=ops, devices=device_types)
 
 
 @app.route('/admins/add-operator/', methods=['GET', 'POST'])
@@ -122,7 +124,7 @@ def admin_add_operator():
         op.login = form.login.data
         op.password = form.password.data
         op.save()
-        return redirect('/admins')
+        return redirect(url_for('admins'))
 
     return render_template("add_operator.html", form=form)
 
@@ -139,6 +141,20 @@ def admin_delete_operator(login_for_del):
         ops = Admins.objects.get_or_404(login=login_for_del)
     ops.delete()
     return redirect('/admins')
+
+
+@app.route('/admins/add-device/', methods=['GET', 'POST'])
+@login_required
+def add_device_type():
+    # TODO: implement device creation
+    return redirect(url_for('admin_panel'))
+
+
+@app.route('/admins/delete-device/<string:id_for_del>/', methods=['GET'])
+@login_required
+def delete_device_type(id_for_del):
+    # TODO: implement device deletion
+    return redirect(url_for('admin_panel'))
 
 
 @app.route('/data/', methods=["POST", "GET"])
