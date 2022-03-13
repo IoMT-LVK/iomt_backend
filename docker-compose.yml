@@ -35,7 +35,7 @@ services:
     build:
       context: ./web
     ports:
-      - "82:82"
+      - "8080:80"
     networks:
       - web
 

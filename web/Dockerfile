@@ -1,10 +1,10 @@
 FROM ubuntu:18.04
 COPY requirements.txt /tmp/requirements.txt
 
-RUN apt-get update && apt-get -y install sudo python3-pip
+RUN apt-get update && apt-get -y install sudo python3-pip supervisor
 RUN useradd -m docker && echo "docker:docker" | chpasswd && adduser docker sudo
-RUN pip3 install --no-cache-dir -r /tmp/requirements.txt
-RUN apt-get install -y python3-pip gunicorn supervisor nginx      
+RUN pip3 install --no-cache-dir -r /tmp/requirements.txt gunicorn flask_login flask_mail
+RUN sudo apt-get install -y nginx      
 
 COPY web-supervisord.conf /etc/supervisor//web-supervisord.conf
 COPY nginx.conf /config/nginx.conf
