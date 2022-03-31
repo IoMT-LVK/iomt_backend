@@ -39,6 +39,10 @@ class LoginForm(FlaskForm):
 
 class AddDevice(FlaskForm):
     name = StringField('Имя устройства', [DataRequired(message="Введите имя устройства")])
+    prefix = StringField('Префикс устройства', [DataRequired(message="Введите префикс устройства")])
+    heartrate = BooleanField('Датчик сердцебиения')
+    resprate = BooleanField('Частота дыхания')
+    kadence = BooleanField('Каденс')
     sensors = TextAreaField('Датчики')
     submit = SubmitField('Добавить')
 

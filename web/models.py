@@ -34,6 +34,7 @@ class Info(db.Document):
     patronymic = db.StringField()
     birth_date = db.StringField()
     phone = db.StringField()
+    allowed = db.ListField()
 
 
 class Operators(db.Document, UserMixin):

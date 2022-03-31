@@ -1,3 +1,4 @@
+import mongoengine
 from flask import Flask, render_template, request, redirect, session, send_file, jsonify, url_for, abort
 from mongoengine import DoesNotExist
 
@@ -35,7 +36,7 @@ csrf = CSRFProtect(app)  # Init CSRF in WTForms for excluding it in interaction 
 url_tokenizer = URLSafeTimedSerializer(
     app.config['SECRET_KEY'])  # Init serializer for generating email confirmation tokens
 mail = Mail(app)  # For sending confirmation emails
-clckhs_client = Client(host=app.config['CLICKHOUSE_HOST'], password=app.config['CLICKHOUSE_PASS'])  # ClickHouse config
+clckhs_client = Client(host='clickhouse', password=app.config['CLICKHOUSE_PASS'])  # ClickHouse config
 
 
 def create_file(user_id, device_id, begin, end):
@@ -146,8 +147,12 @@ def admin_delete_operator(login_for_del):
 @app.route('/admins/add-device/', methods=['GET', 'POST'])
 @login_required
 def add_device_type():
-    # TODO: implement device creation
-    return redirect(url_for('admin_panel'))
+    # TODO Implement
+    return redirect('admin_panel')
+    if type(current_user._get_current_object()) is not Admins:
+        abort(404)
+    form = AddDevice()
+    return render_template("add_device.html", form=form)
 
 
 @app.route('/admins/delete-device/<string:id_for_del>/', methods=['GET'])
@@ -174,10 +179,12 @@ def get_data():
         return render_template('data2.html', form=form2)
     else:
         form = UserList()
-        user_list = []
-        for u in Info.objects:
-            user_list.append((u.user_id, "{} {} {}".format(u.name, u.surname, u.patronymic)))
-        form.us_list.choices = user_list
+        form.us_list.choices = [
+            (u.user_id, "{} {} {}".format(u.name, u.surname, u.patronymic))
+            for u in Info.objects
+            if current_user.id in u.allowed
+        ]
+
         return render_template('data.html', form=form)
 
 
@@ -199,10 +206,11 @@ def get_data_second():
 def user_info():
     if request.method == 'GET':
         form = UserList()
-        user_list = []
-        for u in Info.objects:
-            user_list.append((u.user_id, "{} {} {}".format(u.surname, u.name, u.patronymic)))
-        form.us_list.choices = user_list
+        form.us_list.choices = [
+            (u.user_id, "{} {} {}".format(u.name, u.surname, u.patronymic))
+            for u in Info.objects
+            if current_user.id in u.allowed
+        ]
         return render_template('user_info.html', form=form)
     else:
         form = UserList()
@@ -312,6 +320,20 @@ def get_info():
         info.phone = data['phone_number']
         info.save()
         return {}, 200
+
+
+@app.route('/users/allow/', methods=["POST"])
+@csrf.exempt
+def allow_operator():
+    """Allow access for concrete operator"""
+    token = request.args.get('token')
+    user_id = request.args.get('user_id')
+    op_id = request.args.get('operator_id')
+    if not token or not user_id or not auth.check_token(token):
+        return {}, 403
+    op = Operators.objects.get_or_404(id=op_id)
+    Info.objects(user_id=user_id).update_one(add_to_set__allowed=op.id)
+    return {}, 200
 
 
 @app.route('/devices/register/', methods=['POST'])
