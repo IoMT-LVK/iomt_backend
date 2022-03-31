@@ -55,7 +55,7 @@ COPY mqtt-daemon/mosquitto.conf /etc/mosquitto.conf
 #RUN apt-get install -y mosquitto-auth-plugin
 
 #RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh \
-RUN apt-get install -y git
+RUN apt-get update --fix-missing && apt-get install -y git
 RUN git clone https://github.com/wiomoc/mosquitto-jwt-auth.git && \
     cd mosquitto-jwt-auth && \
     cargo build --release
@@ -63,6 +63,6 @@ RUN git clone https://github.com/wiomoc/mosquitto-jwt-auth.git && \
 RUN find / -name "libmosquitto_jwt_auth.so"
 RUN cp /mosquitto-jwt-auth/target/release/libmosquitto_jwt_auth.so /etc/mosquitto/libmosquitto_jwt_auth.so
 #RUN JWT_KEY=MTIz
-
+COPY .env .env
 EXPOSE 1883 
 CMD ["supervisord", "-n", "-c", "/etc/supervisor/supervisord.conf"]

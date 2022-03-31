@@ -11,23 +11,15 @@ services:
     volumes:
       - ./haproxy/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg
     ports:
-      - "1883:1883"
+      - "1344:1883"
     networks:
       - web
       
   iomt_01:
     build:
       context: .
-    labels: [orbiter=true]
     environment:
       - JWT_KEY=MTIz
-    deploy:
-      mode: replicated
-      replicas: 3
-      labels: [orbiter=true]
-      update_config:
-        parallelism: 1
-        delay: 3s
     networks:
       - web
   
@@ -38,28 +30,13 @@ services:
       - "8080:80"
     networks:
       - web
-
-  orbiter:
-    image: gianarb/orbiter
-    command: /bin/orbiter daemon --debug
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-    ports:
-      - 8005:8005
-    deploy:
-      placement:
-        constraints:
-          - node.role == manager
-      mode: replicated
-      replicas: 1
-    networks:
-      - web
-
-
      
   
+ 
 
 networks:
   web:
     driver: bridge
-    
+    driver_opts:
+      com.docker.network.enable_ipv6: "false"
+      com.docker.network.driver.mtu: 1400
