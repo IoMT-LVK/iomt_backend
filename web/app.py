@@ -1,6 +1,4 @@
-import mongoengine
 from flask import Flask, render_template, request, redirect, session, send_file, jsonify, url_for, abort
-from mongoengine import DoesNotExist
 
 from forms import *
 from flask_wtf.csrf import CSRFProtect
@@ -101,65 +99,8 @@ def login():
     return render_template("login.html", form=form)
 
 
-@app.route('/admins/', methods=['GET'])
-@login_required
-def admin_panel():
-    if type(current_user._get_current_object()) is not Admins:
-        abort(404)
-    app.logger.info(f"Admin ({current_user.login}) come on admin panel")
-    ops = Operators.objects
-    device_types = Devices.objects
-    app.logger.debug(f"Devices: {device_types}")
-    return render_template("admin_panel.html", operators=ops, devices=device_types)
-
-
-@app.route('/admins/add-operator/', methods=['GET', 'POST'])
-@login_required
-def admin_add_operator():
-    form = AddOperator()
-    if type(current_user._get_current_object()) is not Admins:
-        abort(404)
-    if form.validate_on_submit():
-        app.logger.info(f"Admin ({current_user.login}) created operator {form.login.data}")
-        op = Admins() if form.is_admin.data else Operators()
-        op.login = form.login.data
-        op.password = form.password.data
-        op.save()
-        return redirect(url_for('admins'))
-
-    return render_template("add_operator.html", form=form)
-
-
-@app.route('/admins/delete-operator/<string:login_for_del>', methods=['GET'])
-@login_required
-def admin_delete_operator(login_for_del):
-    if type(current_user._get_current_object()) is not Admins:
-        abort(404)
-    app.logger.info(f"Admin ({current_user.login}) deleted user ...")
-    try:
-        ops = Operators.objects.get(login=login_for_del)  # TODO: same login problem
-    except DoesNotExist:
-        ops = Admins.objects.get_or_404(login=login_for_del)
-    ops.delete()
-    return redirect('/admins')
-
-
-@app.route('/admins/add-device/', methods=['GET', 'POST'])
-@login_required
-def add_device_type():
-    # TODO Implement
-    return redirect('admin_panel')
-    if type(current_user._get_current_object()) is not Admins:
-        abort(404)
-    form = AddDevice()
-    return render_template("add_device.html", form=form)
-
-
-@app.route('/admins/delete-device/<string:id_for_del>/', methods=['GET'])
-@login_required
-def delete_device_type(id_for_del):
-    # TODO: implement device deletion
-    return redirect(url_for('admin_panel'))
+from blueprints.admins import bp as admins_bp
+app.register_blueprint(blueprint=admins_bp, url_prefix='/admins')
 
 
 @app.route('/data/', methods=["POST", "GET"])
@@ -219,18 +160,6 @@ def user_info():
         for i in q:
             d[i] = q[i]
         return render_template('user_info_data.html', user=d)
-
-
-@app.route('/devices/', methods=["POST", "GET"])
-@login_required
-def devices():
-    objects = Devices.objects()
-    devices = {}
-    for item in objects:
-        if not item.device in devices:
-            devices[item.device] = []
-        devices[item.device].append([])
-    return render_template('devices.html', devices=devices)
 
 
 @app.route('/download/<file>')
@@ -293,125 +222,9 @@ def confirm_email(user_id, token):
     return '<h1>Email confirmed!</h1>'
 
 
-@app.route('/users/info/', methods=['GET', 'POST'])
-@csrf.exempt
-def get_info():
-    token = request.args.get('token')
-    user_id = request.args.get('user_id')
-    if not token or not user_id or not auth.check_token(token):
-        return {}, 403
-    if request.method == 'GET':
-        info = Info.objects(user_id=user_id).first()
-        weight = 0 if not info.weight else info.weight
-        height = 0 if not info.height else info.height
-        return {"weight": weight, "height": height, "name": info.name, "surname": info.surname,
-                "patronymic": info.patronymic, "email": info.email, "birthdate": info.birth_date,
-                "phone_number": info.phone}, 200
-    else:
-        data = request.get_json()
-        info = Info.objects(user_id=user_id).first()
-        info.weight = data['weight']
-        info.height = data['height']
-        info.email = data['email']
-        info.name = data['name']
-        info.surname = data['surname']
-        info.patronymic = data['patronymic']
-        info.birth_date = data['birthdate']
-        info.phone = data['phone_number']
-        info.save()
-        return {}, 200
-
-
-@app.route('/users/allow/', methods=["POST"])
-@csrf.exempt
-def allow_operator():
-    """Allow access for concrete operator"""
-    token = request.args.get('token')
-    user_id = request.args.get('user_id')
-    op_id = request.args.get('operator_id')
-    if not token or not user_id or not auth.check_token(token):
-        return {}, 403
-    op = Operators.objects.get_or_404(id=op_id)
-    Info.objects(user_id=user_id).update_one(add_to_set__allowed=op.id)
-    return {}, 200
-
-
-@app.route('/devices/register/', methods=['POST'])
-@csrf.exempt
-def register_device():
-    token = request.args.get('token')
-    user_id = request.args.get('user_id')  # FIXME: Дыра, любой зареганый пользователь может зарегать на другого девайс
-    if not token or not user_id or not auth.check_token(token):
-        return {}, 403
-    data = request.get_json()
-    device = Userdevices()
-    device.user_id = user_id
-    device.device_id = data['device_id']
-    device.device_name = data['device_name']
-    device.device_type = data['device_type']
-    device.save()
-
-    table_name = user_id + '_' + data['device_id'].replace(':', '')
-    app.logger.info("TABLE %s", table_name)
-    obj = Devices.objects(device_type=data['device_type']).first()
-    if not obj:
-        return {}, 403
-
-    create_str = obj.create_str.format(table_name)
-    app.logger.info("CREATE %s", create_str)
-
-    clckhs_client.execute(create_str)
-    return {}, 200
-
-
-@app.route('/devices/get/', methods=['GET'])
-def get_user_devices():
-    token = request.args.get('token')
-    user_id = request.args.get('user_id')
-    if not token or not user_id or not auth.check_token(token):
-        return {}, 403
-    objects = Userdevices.objects(user_id=user_id)
-    user_devices = [
-        {"device_id": obj.device_id, "device_name": obj.device_name, "device_type": obj.device_type}
-        for obj in objects
-    ]
-    return jsonify({"devices": user_devices}), 200
-
-
-@app.route('/devices/types/', methods=['GET'])
-def get_devices():
-    token = request.args.get('token')
-    user_id = request.args.get('user_id')
-    if not token or not user_id or not auth.check_token(token):
-        return {}, 403
-    devices_types = [
-        {"device_type": obj.device_type, "prefix": obj.prefix}
-        for obj in Devices.objects()
-    ]
-    for obj in Devices.objects():
-        devices_types.append({"device_type": obj.device_type, "prefix": obj.prefix})
-    return jsonify({"devices": devices_types}), 200
-
-
-@app.route('/devices/delete/', methods=['GET'])
-def delete_device():
-    token = request.args.get('token')
-    user_id = request.args.get('user_id')
-    device_id = request.args.get('id')
-    if not token or not user_id or not auth.check_token(token):
-        return {}, 403
-    d = Userdevices.objects(user_id=user_id, device_id=device_id).first()
-    d.delete()
-    return {}, 200
-
-
-@app.route('/jwt/', methods=['GET'])
-def cjwt():
-    token = request.args.get('token')
-    if not token or not auth.check_token(token):
-        return jsonify({"valid": False})
-    else:
-        return jsonify({"valid": True})
+from blueprints.api import bp as api_bp
+app.register_blueprint(api_bp)
+csrf.exempt(api_bp)
 
 
 @app.route('/logout/')
