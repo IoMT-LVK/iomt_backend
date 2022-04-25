@@ -1,11 +1,11 @@
 import flask
 from flask import current_app
 
-# noinspection PyUnresolvedReferences
-import forms, models, auth
+import forms  # noqa
+import models  # noqa
+import auth  # noqa
+from app import clickhouse_client  # noqa
 
-# noinspection PyUnresolvedReferences
-from app import clckhs_client
 
 bp = flask.Blueprint('api', __name__)
 
@@ -75,7 +75,7 @@ def register_device():
     create_str = obj.create_str.format(table_name)
     current_app.logger.info("CREATE %s", create_str)
 
-    clckhs_client.execute(create_str)
+    clickhouse_client.execute(create_str)
     return {}, 200
 
 
@@ -96,9 +96,13 @@ def get_user_devices():
 @bp.route('/devices/types/', methods=['GET'])
 def get_devices():
     token = flask.request.args.get('token')
-    user_id = flask.request.args.get('user_id')
-    if not token or not user_id or not auth.check_token(token):
+    type_id = flask.request.args.get('id')
+    if not token or not auth.check_token(token):
         return {}, 403
+    return flask.send_from_directory('device_type_cfgs', f"{type_id}.toml") if type_id == '1' else flask.abort(404, f"Config_id {type_id} not found")  # FIXME
+    if type_id is str and type_id.isdecimal():
+        models.Devices.objects()
+    models.Devices.objects(id=type_id).first()
     devices_types = [
         {"device_type": obj.device_type, "prefix": obj.prefix}
         for obj in models.Devices.objects()

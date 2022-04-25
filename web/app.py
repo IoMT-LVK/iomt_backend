@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, session, send_file, jsonify, url_for, abort
+from flask import Flask, render_template, request, redirect, session, send_file, jsonify, url_for
 
 from forms import *
 from flask_wtf.csrf import CSRFProtect
@@ -31,17 +31,16 @@ if not config_loaded:
 db.init_app(app)  # Init mongoengine
 manager = LoginManager(app)  # Init login manager
 csrf = CSRFProtect(app)  # Init CSRF in WTForms for excluding it in interaction with phone (well...)
-url_tokenizer = URLSafeTimedSerializer(
-    app.config['SECRET_KEY'])  # Init serializer for generating email confirmation tokens
+url_tokenizer = URLSafeTimedSerializer(app.config['SECRET_KEY'])  # Serializer for generating email confirmation tokens
 mail = Mail(app)  # For sending confirmation emails
-clckhs_client = Client(host='clickhouse', password=app.config['CLICKHOUSE_PASS'])  # ClickHouse config
+clickhouse_client = Client(host='clickhouse', password=app.config['CLICKHOUSE_PASS'])  # ClickHouse config
 
 
 def create_file(user_id, device_id, begin, end):
     """Generates file with data"""
     name = user_id + '_' + device_id.replace(':', '')
     query = "select * from {} where Clitime between '{}' and '{}'".format(name, begin, end)
-    res = clckhs_client.execute(query)
+    res = clickhouse_client.execute(query)
     file_name = name + '_' + str(random.randint(1, 1000000)) + '.csv'
 
     d = Userdevices.objects(user_id=user_id).first()
@@ -64,14 +63,16 @@ def load_user(user_id):
     """Configure user loader"""
     return Operators.objects(pk=user_id).first()
 
+
 @app.route('/auth/', methods=['POST'])
 @csrf.exempt
 def authenticate():
-    data = request.get_json()
+    data = request.json
     if data['login'] and data['password']:
         confirmed, jwt, code, user_id = auth.check_user(data['login'], data['password'])
         return jsonify({'jwt':jwt, "confirmed": confirmed, "user_id":user_id}), code
     return jsonify({}), 403
+
 
 @app.route('/')
 def main():

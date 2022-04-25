@@ -12,7 +12,7 @@ sys.path.append('..')
 
 click_password = "iomtpassword123"
 
-clientdb = Client(host='localhost', password = click_password)
+clientdb = Client(host='localhost', password=click_password)
 topicName = "c/#"
 host = "localhost"
 QOS_val = 2
