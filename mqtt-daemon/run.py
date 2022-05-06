@@ -14,9 +14,9 @@ sys.path.append('..')
 
 click_password = "iomtpassword123"
 
-clientdb = Client(host='172.30.7.214', password = click_password)
+clientdb = Client(host='clickhouse', password = click_password)
 topicName = "c/#"
-host = "172.30.7.214"
+host = "localhost"
 QOS_val = 2
 insert_bulk = {}
 key = base64_encode("MTIz")

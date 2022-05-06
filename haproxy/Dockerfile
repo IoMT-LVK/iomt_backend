@@ -4,7 +4,7 @@ FROM haproxy:2.3
 
 # Add personalized configuration
 COPY haproxy.cfg /usr/local/etc/haproxy/haproxy.cfg
-
+RUN apt-get update && apt-get install -y vim
 # Add restart commands
 #ADD restart.bash /haproxy-restart
 

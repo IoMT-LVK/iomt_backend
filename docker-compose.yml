@@ -1,9 +1,30 @@
 version: '3.9'
 
+volumes:
+  prometheus:
+  alertmanager:
+
+networks:
+  iomt:
+    external:
+      name: iomt 
+  monitoring:
+    external:
+      name: monitoring
+
+configs:
+  prom_config:
+    file: ./prometheus/prometheus.yml
+  alert_rules:
+    file: ./prometheus/alerts.yml
+  alertmanager:
+    file: ./alertmanager/alertmanager.yml
+
 services:
-  haproxy:
+  lb:
     depends_on:
       - iomt_01
+    image: 127.0.0.1:5000/haproxy
     build: 
       context: ./haproxy
     environment:
@@ -13,30 +34,142 @@ services:
     ports:
       - "1344:1883"
     networks:
-      - web
+      - iomt
+      - monitoring
+
+  prometheus:
+    image: prom/prometheus:v2.1.0
+    networks:
+      - monitoring
+    ports:
+      - 9090:9090
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+    volumes:
+      - prometheus:/data
+    configs:
+      - source: prom_config
+        target: /etc/prometheus/prometheus.yml
+      - source: alert_rules
+        target: /etc/prometheus/alerts.yml
+    deploy:
+      mode: replicated
+      replicas: 1
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+
+  haproxy_exporter:
+    image: prom/haproxy-exporter:v0.9.0
+    networks:
+      - monitoring
+    command:
+      - '--haproxy.scrape-uri=http://stats:stats@lb:1936/haproxy?stats;csv'
+    deploy:
+      mode: replicated
+      replicas: 1
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+
+  alertmanager:
+    image: prom/alertmanager:v0.13.0
+    networks:
+      - monitoring
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+    volumes:
+      - alertmanager:/data
+    configs:
+      - source: alertmanager
+        target: /etc/alertmanager/alertmanager.yml
+    deploy:
+      mode: replicated
+      replicas: 1
+      resources:
+        limits:
+          memory: 128M
+        reservations:
+          memory: 64M
       
   iomt_01:
+    image: 127.0.0.1:5000/iomt_01
     build:
       context: .
+    labels: [orbiter=true]
     environment:
       - JWT_KEY=MTIz
+    deploy:
+      mode: replicated
+      replicas: 2
+      labels: [orbiter=true]
+      update_config:
+        parallelism: 1
+        delay: 3s
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 256M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+    ports: 
+      - "18830-18930:1883"
     networks:
-      - web
+      - iomt
+      - monitoring
   
   web-site:
+    image: 127.0.0.1:5000/web-site
     build:
       context: ./web
     ports:
       - "8080:80"
     networks:
-      - web
+      - iomt
+
+  orbiter:
+    image: gianarb/orbiter
+    command: /bin/orbiter daemon --debug
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - 8005:8005
+    deploy:
+      placement:
+        constraints:
+          - node.role == manager
+      mode: replicated
+      replicas: 1
+    networks:
+      - monitoring
+
+  clickhouse:
+     image: yandex/clickhouse-server
+     ports:
+     - "8123:8123"
+     - "9000:9000"
+     - "9009:9009"
+     
+     ulimits:
+      nproc: 65535
+      nofile:
+       soft: 262144
+       hard: 262144
      
   
  
 
-networks:
-  web:
-    driver: bridge
-    driver_opts:
-      com.docker.network.enable_ipv6: "false"
-      com.docker.network.driver.mtu: 1400
+
+      #driver: bridge
+      #driver_opts:
+      #com.docker.network.enable_ipv6: "false"
+      #com.docker.network.driver.mtu: 1400
