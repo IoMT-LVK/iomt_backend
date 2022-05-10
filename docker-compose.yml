@@ -158,12 +158,15 @@ services:
      - "8123:8123"
      - "9000:9000"
      - "9009:9009"
+     networks:
+        - iomt
      
      ulimits:
       nproc: 65535
       nofile:
        soft: 262144
        hard: 262144
+      
      
   
  
