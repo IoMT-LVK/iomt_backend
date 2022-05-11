@@ -26,3 +26,11 @@ Then you can deploy all system to swarm
 ```
 docker stack deploy --compose-file docker-compose.yml iomt
 ```
+if you want to delete your swarm, then type: 
+```
+docker stack rm iomt
+```
+if you want to bring your Docker Engine out of swarm mode, then type:
+```
+docker swarm leave --force
+```
