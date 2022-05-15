@@ -98,8 +98,10 @@ def get_devices():
     token = flask.request.args.get('token')
     type_id = flask.request.args.get('id')
     if not token or not auth.check_token(token):
-        return {}, 403
-    return flask.send_from_directory('device_type_cfgs', f"{type_id}.toml") if type_id == '1' else flask.abort(404, f"Config_id {type_id} not found")  # FIXME
+        return {'message': "invalid token", "token": token}, 403
+    with open(f"device_type_cfgs/{type_id}.toml", 'rt') as f:
+        return f.read()
+    # return flask.send_from_directory('device_type_cfgs', f"{type_id}.toml") if type_id == '1' else flask.abort(404, f"Config_id {type_id} not found")  # FIXME
     if type_id is str and type_id.isdecimal():
         models.Devices.objects()
     models.Devices.objects(id=type_id).first()

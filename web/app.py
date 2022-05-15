@@ -33,7 +33,7 @@ manager = LoginManager(app)  # Init login manager
 csrf = CSRFProtect(app)  # Init CSRF in WTForms for excluding it in interaction with phone (well...)
 url_tokenizer = URLSafeTimedSerializer(app.config['SECRET_KEY'])  # Serializer for generating email confirmation tokens
 mail = Mail(app)  # For sending confirmation emails
-clickhouse_client = Client(host='clickhouse', password=app.config['CLICKHOUSE_PASS'])  # ClickHouse config
+clickhouse_client = Client(host=app.config['CLICKHOUSE_HOST'], password=app.config['CLICKHOUSE_PASS'])  # ClickHouse config
 
 
 def create_file(user_id, device_id, begin, end):
