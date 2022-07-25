@@ -1,13 +1,19 @@
 import flask
 from flask import current_app
+from clickhouse_driver import Client
 
 import forms  # noqa
 import models  # noqa
 import auth  # noqa
-from app import clickhouse_client  # noqa
 
 
 bp = flask.Blueprint('api', __name__)
+
+
+def get_clickhouse_data(query):
+    clickhouse_client = Client(host=current_app.config['CLICKHOUSE_HOST'],
+                               password=current_app.config['CLICKHOUSE_PASS'])  # ClickHouse config
+    return clickhouse_client.execute(query)
 
 
 @bp.route('/users/info/', methods=['GET', 'POST'])

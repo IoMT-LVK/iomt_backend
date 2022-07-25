@@ -1,15 +1,15 @@
 from flask import Flask, render_template, request, redirect, session, send_file, jsonify, url_for
 
 from forms import *
+from blueprints.api import get_clickhouse_data
 from flask_wtf.csrf import CSRFProtect
-from models import db, Users, Operators, Devices, Userdevices, Info, Admins
+from models import db, Users, Operators, Devices, Userdevices, Info
 from werkzeug.security import generate_password_hash
 from flask_login import current_user, login_user, login_required, logout_user, LoginManager
 import auth
 import random
 import csv
 import uuid
-from clickhouse_driver import Client
 import logging
 from flask_mail import Mail, Message
 from itsdangerous import URLSafeTimedSerializer, SignatureExpired
@@ -22,7 +22,7 @@ app.logger.handlers.extend(gunicorn_error_logger.handlers)
 app.logger.setLevel(gunicorn_error_logger.level)
 
 # Loading configuration
-app.config.from_object('default_settings')
+app.config.from_object('default_conf')
 config_loaded = app.config.from_envvar('FLASK_CONFIG', silent=True)
 if not config_loaded:
     app.logger.warning("Default config was loaded. "
@@ -33,14 +33,13 @@ manager = LoginManager(app)  # Init login manager
 csrf = CSRFProtect(app)  # Init CSRF in WTForms for excluding it in interaction with phone (well...)
 url_tokenizer = URLSafeTimedSerializer(app.config['SECRET_KEY'])  # Serializer for generating email confirmation tokens
 mail = Mail(app)  # For sending confirmation emails
-clickhouse_client = Client(host=app.config['CLICKHOUSE_HOST'], password=app.config['CLICKHOUSE_PASS'])  # ClickHouse config
 
 
 def create_file(user_id, device_id, begin, end):
     """Generates file with data"""
     name = user_id + '_' + device_id.replace(':', '')
     query = "select * from {} where Clitime between '{}' and '{}'".format(name, begin, end)
-    res = clickhouse_client.execute(query)
+    res = get_clickhouse_data(query)
     file_name = name + '_' + str(random.randint(1, 1000000)) + '.csv'
 
     d = Userdevices.objects(user_id=user_id).first()
@@ -236,4 +235,4 @@ def logout():
 
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0')
+    app.run(debug=True, host='localhost')

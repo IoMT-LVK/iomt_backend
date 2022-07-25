@@ -13,7 +13,10 @@ MAIL_PORT = 465
 MAIL_USE_SSL = True
 MAIL_USE_TLS = False
 
-MONGODB_DB = 'data'
 MONGODB_HOST = 'localhost'
+MONGODB_DB = 'data'
 
-SECRET_KEY='mus7_b3_chan9ed'
+CLICKHOUSE_HOST = 'localhost'
+CLICKHOUSE_PASS = ""
+
+SECRET_KEY = 'mus7_b3_chan9ed'
