@@ -1,17 +1,28 @@
 version: '3.9'
+# This file configure containers and their interactions
+# https://docs.docker.com/compose/compose-file
 
+
+# This element defines volumes used in project
+# volumes - is mapping between container and host file system
+# https://habr.com/ru/company/southbridge/blog/534334/
 volumes:
   prometheus:
   alertmanager:
 
+# Networks - virtual networks used to communicate between containers
 networks:
-  iomt:
-    external:
-      name: iomt 
+  iomt:  # name
+    driver: overlay  # network driver, overlay - special driver for swarm orcherstration
+    #external: true  # means that this network is already created and compose doesn't need to create it
+    attachable: true
   monitoring:
-    external:
-      name: monitoring
+    driver: overlay
+    #external: true
+    attachable: true
 
+# Configs - is flexible way to configurate your container in **SWARM**
+# https://docs.docker.com/engine/swarm/configs/
 configs:
   prom_config:
     file: ./prometheus/prometheus.yml
@@ -20,46 +31,55 @@ configs:
   alertmanager:
     file: ./alertmanager/alertmanager.yml
 
+# Services - main element in compose file enumerating all existing services
 services:
-  lb:
-    depends_on:
+  lb:  # Name (loadbalancer)
+    depends_on:  # Guarantee to start service after encountered below
       - iomt_01
     image: 127.0.0.1:5000/haproxy
-    build: 
-      context: ./haproxy
-    environment:
+    # image: 127.0.0.1:5000/iomt-service/haproxy  # image specifies the image to start the container from
+                                                # 127.0.0.1:5000 - registry
+                                                # iomt-service - project
+                                                # haproxy - image
+    build:  # build specifies the build configuration for creating container image from source
+      # https://docs.docker.com/compose/compose-file/build/
+      context: ./haproxy  # context defines either a path to a directory containing a Dockerfile
+    environment:  # environment defines environment variables set in the container
       - BALANCE=leastconn
-    volumes:
-      - ./haproxy/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg
-    ports:
-      - "1344:1883"
-    networks:
+    volumes:  # same as top-level volumes, BUT this volumes can be accessed only by this container
+      - ./haproxy/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg  # map haproxy.cfg to etc
+    ports:  # Exposes container ports
+      - "1344:1883"  # maps 1344 host port to 1883 container port
+    networks:  # defines connected networks
       - iomt
       - monitoring
 
   prometheus:
-    image: prom/prometheus:v2.1.0
+    image: prom/prometheus:v2.1.0  # hub.docker.io - registry
+                                   # prom - user/poject
+                                   # prometheus - image
+                                   # v2.1.0 - tag
     networks:
       - monitoring
     ports:
-      - 9090:9090
-    command:
+      - "9090:9090"
+    command:  # command overrides the default command declared by the container image
       - '--config.file=/etc/prometheus/prometheus.yml'
     volumes:
       - prometheus:/data
     configs:
-      - source: prom_config
-        target: /etc/prometheus/prometheus.yml
+      - source: prom_config  # take config
+        target: /etc/prometheus/prometheus.yml  # place it as target
       - source: alert_rules
         target: /etc/prometheus/alerts.yml
-    deploy:
-      mode: replicated
-      replicas: 1
-      resources:
-        limits:
+    deploy:  # deploy specifies the configuration for the deployment and lifecycle of services
+      mode: replicated  # how to deploy: replicated - n containers on one node, global - 1 container per 1 node
+      replicas: 1  # n containers to run
+      resources:  # configures physical resource constraints for container to run on platform
+        limits:  # The platform MUST prevent container to allocate more
           cpus: '0.25'
           memory: 512M
-        reservations:
+        reservations:  # The platform MUST guarantee container can allocate at least the configured amount
           cpus: '0.25'
           memory: 256M
 

@@ -17,10 +17,14 @@ RUN mkdir -p  /var/log/supervisor
 COPY web/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY mqtt-daemon /iomt-project/mqtt-daemon
 COPY mqtt-daemon/mosquitto.conf /etc/mosquitto.conf
-RUN apt-get update --fix-missing && apt-get install -y git vim
+RUN apt-get update --fix-missing && apt-get install -y git vim curl
+RUN curl https://sh.rustup.rs -sSf > runsetup.sh
+RUN chmod 755 runsetup.sh
+RUN ./runsetup.sh -y
+RUN rm runsetup.sh
 RUN git clone https://github.com/wiomoc/mosquitto-jwt-auth.git && \
     cd mosquitto-jwt-auth && \
-    cargo build --release
+    ~/.cargo/bin/cargo build --release
 RUN find / -name "libmosquitto_jwt_auth.so"
 RUN cp /mosquitto-jwt-auth/target/release/libmosquitto_jwt_auth.so /etc/mosquitto/libmosquitto_jwt_auth.so
 COPY .env .env
