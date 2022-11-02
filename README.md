@@ -2,8 +2,19 @@
 Scalable server part of a project related to the Internet of medical things
 
 Cause this application run with docker, you needs to change IP in this string to your server IP, if you don't run your app on LVK-server:
-
 clientdb = Client(host='172.30.7.214', password = click_password)
+
+All commands was tested on Linux (Ubuntu-18.04)
+
+--------------------------------
+
+# Possible improvements:
+- [ ] Neat logs
+- [ ] SQLAlchemy support (maybe with migration to MySQL)
+- [ ] RESTful interface
+
+--------------------------------
+
 
 To start swarm
 ```

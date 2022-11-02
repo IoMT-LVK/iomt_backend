@@ -4,6 +4,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 
 db = MongoEngine()
 
+
 class Users(db.Document):
     """User accounts"""
     user_id = db.StringField()
@@ -33,11 +34,15 @@ class Info(db.Document):
     patronymic = db.StringField()
     birth_date = db.StringField()
     phone = db.StringField()
+    allowed = db.ListField()
+
 
 class Operators(db.Document, UserMixin):
     """Operator accounts"""
     login = db.StringField()
     password_hash = db.StringField()
+
+    meta = {'allow_inheritance': True}
 
     @property
     def password(self):
@@ -51,12 +56,18 @@ class Operators(db.Document, UserMixin):
         return check_password_hash(self.password_hash, password)
 
 
+class Admins(Operators):
+    """Administrators of project, can be created directly from command line"""
+    ...
+
+
 class Devices(db.Document):
     """Devices and their sensors"""
     device_type = db.StringField()
     prefix = db.StringField()
     create_str = db.StringField()
     columns = db.StringField()
+
 
 class Userdevices(db.Document):
     """User registered devices"""
