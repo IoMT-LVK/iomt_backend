@@ -30,6 +30,16 @@ All commands compatible with Debian 11
    `docker swarm init`
 1. Clone repository
    `git clone git@github.com:IoMT-LVK/iomt_backend.git`
+1. Create secrets: jwt\_key
+   `openssl rand -base64 32 | docker secret create jwt_key -`
+1. Build images
+   `docker compose build`
+1. Start services
+   `docker stack deploy -c docker-compose.yml iomt`
+
+### Optional
+You can create specific configurations for each node.
+As an example downgrade mongo version in docker-compose.production.yml
 
 --------------------------------
 

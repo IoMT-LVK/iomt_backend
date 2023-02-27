@@ -32,12 +32,12 @@ def token():
 
 class Keeper:
 
-    def __init__(self, topic_name, qos_val, broker_host, port=1883):
+    def __init__(self, topic_name, qos_val, broker_host, broker_port=1883):
         self.client = MqttClient()
         self.topic = topic_name
         self.qos = qos_val
         self.host = broker_host
-        self.port = port
+        self.port = broker_port
         self.client.on_connect = self.on_connect
         self.client.on_disconnect = self.on_disconnect
         self.client.on_message = self.on_message
@@ -98,9 +98,11 @@ class Keeper:
 
 
 def main(**kwargs):
-    kwrags.setdefault('host', 'localhost')
-    kwrags.setdefault('port', 1883)
+    kwargs.setdefault('host', 'localhost')
+    kwargs.setdefault('port', 1883)
     climqtt = Keeper(
+        topic_name=topicName,
+        qos_val=QOS_val,
         broker_host=kwargs['host'],
         broker_port=kwargs['port'],
     )
@@ -108,4 +110,4 @@ def main(**kwargs):
 
 
 if __name__ == '__main__':
-    main(sys.argv)
+    main()

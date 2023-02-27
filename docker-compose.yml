@@ -2,21 +2,21 @@ version: '3.9'
 # This file configure containers and their interactions
 # https://docs.docker.com/compose/compose-file
 # Containers list:
-#       [Web app]
-#       - web-app -- web interface to collected stats
-#       - nginx -- server for web-app
-#       - mongo -- database =)
+#   [Web app]
+#   - web-app -- web interface to collected stats
+#   - nginx -- server for web-app
+#   - mongo -- database =)
 #
-#       [Mosquitto app]
-#       - iomt_01 -- mqtt server (loadbalanced)
-#       - clickhouse -- another database
-#       
-#       [Loadbalancing]
-#       - loadbalancer -- balance requests into different hosts
-#       - haproxy_exporter -- export stats from haproxy to prometheus
-#       - prometheus -- collect load info from hosts and call alerts if need
-#       - alertmanager -- receive alerts from prometheus and send requests to orbiter
-#       - orbiter -- turn on and put down new items of iomt_01
+#   [Mosquitto app]
+#   - iomt_01 -- mqtt server (loadbalanced)
+#   - clickhouse -- another database
+#   
+#   [Loadbalancing]
+#   - loadbalancer -- balance requests into different hosts
+#   - haproxy_exporter -- export stats from haproxy to prometheus
+#   - prometheus -- collect load info from hosts and call alerts if need
+#   - alertmanager -- receive alerts from prometheus and send requests to orbiter
+#   - orbiter -- turn on and put down new items of iomt_01
 
 
 # This element defines volumes used in project
@@ -77,20 +77,20 @@ services:
       - iomt
 
   mongo:
-      image: mongo:latest
-      restart: always
-      volumes:
-          - data:/data/db
-      networks:
-          - iomt
+    image: mongo:latest
+    restart: always
+    volumes:
+      - data:/data/db
+    networks:
+      - iomt
 
   mosquitto:
     image: mosquitto  # Name of local built image
     build: ./services/mosquitto  # Context directory with Dockerfile
-    labels: [orbiter=true]  # Marks to rbiter to manage this service
+    labels: [orbiter=true]  # Marks to orbiter to manage this service
     deploy:
       mode: replicated
-      replicas: 1
+      replicas: 2
       labels: [orbiter=true]
       update_config:
         parallelism: 1
@@ -116,27 +116,25 @@ services:
       - jwt_key
 
   clickhouse:
-     image: yandex/clickhouse-server
-     ports:
-     - "8123:8123"
-     - "9000:9000"
-     - "9009:9009"
-     networks:
-        - iomt
-     
-     ulimits:
+    image: yandex/clickhouse-server
+    ports:
+      - "8123:8123"
+      - "9000:9000"
+      - "9009:9009"
+    networks:
+      - iomt
+    
+    ulimits:
       nproc: 65535
       nofile:
-       soft: 262144
-       hard: 262144
+        soft: 262144
+        hard: 262144
   
-  lb:  # Name (loadbalancer)
+  balancer:  # Name (loadbalancer)
     depends_on:  # Guarantee to start service after encountered below
       - mosquitto
-    image: service-lb
-    build:  # build specifies the build configuration for creating container image from source
-      # https://docs.docker.com/compose/compose-file/build/
-      context: ./services/loadbalancer  # context defines either a path to a directory containing a Dockerfile
+    image: balancer
+    build: "./services/loadbalancer"  # context defines either a path to a directory containing a Dockerfile
     environment:  # environment defines environment variables set in the container
       - BALANCE=leastconn
     ports:  # Exposes container ports
