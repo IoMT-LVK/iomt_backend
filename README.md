@@ -15,6 +15,23 @@ All commands was tested on Linux (Ubuntu-18.04)
 
 --------------------------------
 
+# About architecture
+Project support *docker swarm* mode.
+A swarm consists of multiple Docker hosts. In this case there is only one host running in swarm mode, but keep in mind that there could be multi-host configurations for swrm.
+Under this concept lies stack (set of services)
+Service is multiplied task.
+Task is simple docker conteiner.
+
+# Start project on clean server
+All commands compatible with Debian 11
+
+1. [Install docker](https://docs.docker.com/engine/install/)
+1. [Enable "swarm mode"](https://docs.docker.com/engine/swarm/swarm-mode/)
+   `docker swarm init`
+1. Clone repository
+   `git clone git@github.com:IoMT-LVK/iomt_backend.git`
+
+--------------------------------
 
 To start swarm
 ```

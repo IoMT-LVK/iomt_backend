@@ -1,6 +1,22 @@
 version: '3.9'
 # This file configure containers and their interactions
 # https://docs.docker.com/compose/compose-file
+# Containers list:
+#       [Web app]
+#       - web-app -- web interface to collected stats
+#       - nginx -- server for web-app
+#       - mongo -- database =)
+#
+#       [Mosquitto app]
+#       - iomt_01 -- mqtt server (loadbalanced)
+#       - clickhouse -- another database
+#       
+#       [Loadbalancing]
+#       - loadbalancer -- balance requests into different hosts
+#       - haproxy_exporter -- export stats from haproxy to prometheus
+#       - prometheus -- collect load info from hosts and call alerts if need
+#       - alertmanager -- receive alerts from prometheus and send requests to orbiter
+#       - orbiter -- turn on and put down new items of iomt_01
 
 
 # This element defines volumes used in project
@@ -9,6 +25,7 @@ version: '3.9'
 volumes:
   prometheus:
   alertmanager:
+  data:  # Database
 
 # Networks - virtual networks used to communicate between containers
 networks:
@@ -19,40 +36,131 @@ networks:
   monitoring:
     driver: overlay
     #external: true
-    attachable: true
+    #attachable: true
 
 # Configs - is flexible way to configurate your container in **SWARM**
 # https://docs.docker.com/engine/swarm/configs/
 configs:
   prom_config:
-    file: ./prometheus/prometheus.yml
+    file: ./services/prometheus/prometheus.yml
   alert_rules:
-    file: ./prometheus/alerts.yml
+    file: ./services/prometheus/alerts.yml
   alertmanager:
-    file: ./alertmanager/alertmanager.yml
+    file: ./services/alertmanager/alertmanager.yml
+  nginx:
+    file: ./services/nginx/default.conf
+
+secrets:
+  jwt_key:
+    external: true
 
 # Services - main element in compose file enumerating all existing services
 services:
+
+  web_app:
+    image: web_app  # swarm ignores build and restart options and looks for image option in each container
+    build:
+      context: ./services/web
+    networks:
+      - iomt
+      
+  nginx:
+    image: nginx
+    depends_on:
+      - web_app
+    configs:
+      - source: nginx
+        target: "/etc/nginx/conf.d/default.conf"
+    ports:
+      - "80:80"
+    networks:
+      - iomt
+
+  mongo:
+      image: mongo:latest
+      restart: always
+      volumes:
+          - data:/data/db
+      networks:
+          - iomt
+
+  mosquitto:
+    image: mosquitto  # Name of local built image
+    build: ./services/mosquitto  # Context directory with Dockerfile
+    labels: [orbiter=true]  # Marks to rbiter to manage this service
+    deploy:
+      mode: replicated
+      replicas: 1
+      labels: [orbiter=true]
+      update_config:
+        parallelism: 1
+        delay: 3s
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 256M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+    volumes:
+      - source: "./services/mosquitto/broker/mosquitto.conf"
+        target: "/mosquitto/config/mosquitto.conf"
+        type: "bind"
+        read_only: true
+    ports: 
+      - "18830-18930:1883"
+    networks:
+      - iomt
+      - monitoring
+    secrets:
+      - jwt_key
+
+  clickhouse:
+     image: yandex/clickhouse-server
+     ports:
+     - "8123:8123"
+     - "9000:9000"
+     - "9009:9009"
+     networks:
+        - iomt
+     
+     ulimits:
+      nproc: 65535
+      nofile:
+       soft: 262144
+       hard: 262144
+  
   lb:  # Name (loadbalancer)
     depends_on:  # Guarantee to start service after encountered below
-      - iomt_01
-    image: 127.0.0.1:5000/haproxy
-    # image: 127.0.0.1:5000/iomt-service/haproxy  # image specifies the image to start the container from
-                                                # 127.0.0.1:5000 - registry
-                                                # iomt-service - project
-                                                # haproxy - image
+      - mosquitto
+    image: service-lb
     build:  # build specifies the build configuration for creating container image from source
       # https://docs.docker.com/compose/compose-file/build/
-      context: ./haproxy  # context defines either a path to a directory containing a Dockerfile
+      context: ./services/loadbalancer  # context defines either a path to a directory containing a Dockerfile
     environment:  # environment defines environment variables set in the container
       - BALANCE=leastconn
-    volumes:  # same as top-level volumes, BUT this volumes can be accessed only by this container
-      - ./haproxy/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg  # map haproxy.cfg to etc
     ports:  # Exposes container ports
       - "1344:1883"  # maps 1344 host port to 1883 container port
     networks:  # defines connected networks
       - iomt
       - monitoring
+
+  haproxy_exporter:
+    image: prom/haproxy-exporter:v0.9.0
+    networks:
+      - monitoring
+    command:
+      - '--haproxy.scrape-uri=http://stats:stats@lb:1936/haproxy?stats;csv'
+    deploy:
+      mode: replicated
+      replicas: 1
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
 
   prometheus:
     image: prom/prometheus:v2.1.0  # hub.docker.io - registry
@@ -83,23 +191,6 @@ services:
           cpus: '0.25'
           memory: 256M
 
-  haproxy_exporter:
-    image: prom/haproxy-exporter:v0.9.0
-    networks:
-      - monitoring
-    command:
-      - '--haproxy.scrape-uri=http://stats:stats@lb:1936/haproxy?stats;csv'
-    deploy:
-      mode: replicated
-      replicas: 1
-      resources:
-        limits:
-          cpus: '0.25'
-          memory: 512M
-        reservations:
-          cpus: '0.25'
-          memory: 256M
-
   alertmanager:
     image: prom/alertmanager:v0.13.0
     networks:
@@ -120,44 +211,8 @@ services:
         reservations:
           memory: 64M
       
-  iomt_01:
-    image: 127.0.0.1:5000/iomt_01
-    build:
-      context: .
-    labels: [orbiter=true]
-    environment:
-      - JWT_KEY=MTIz
-    deploy:
-      mode: replicated
-      replicas: 2
-      labels: [orbiter=true]
-      update_config:
-        parallelism: 1
-        delay: 3s
-      resources:
-        limits:
-          cpus: '0.25'
-          memory: 256M
-        reservations:
-          cpus: '0.25'
-          memory: 256M
-    ports: 
-      - "18830-18930:1883"
-    networks:
-      - iomt
-      - monitoring
-  
-  web-site:
-    image: 127.0.0.1:5000/web-site
-    build:
-      context: ./web
-    ports:
-      - "8080:80"
-    networks:
-      - iomt
-
   orbiter:
-    image: gianarb/orbiter
+    image: gianarb/orbiter:latest
     command: /bin/orbiter daemon --debug
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
@@ -171,28 +226,3 @@ services:
       replicas: 1
     networks:
       - monitoring
-
-  clickhouse:
-     image: yandex/clickhouse-server
-     ports:
-     - "8123:8123"
-     - "9000:9000"
-     - "9009:9009"
-     networks:
-        - iomt
-     
-     ulimits:
-      nproc: 65535
-      nofile:
-       soft: 262144
-       hard: 262144
-      
-     
-  
- 
-
-
-      #driver: bridge
-      #driver_opts:
-      #com.docker.network.enable_ipv6: "false"
-      #com.docker.network.driver.mtu: 1400

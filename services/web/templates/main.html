@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>IoMT</title>
+    <link rel="shortcut icon"
+          href="{{ url_for('static', filename='img/IoMT_logo_bg.ico') }}"
+          type="image/x-icon">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style/style64.css') }}">
+</head>
+<body>
+<header>
+    <div class='hat'>
+{#        <img src="https://asvk.cs.msu.su/sites/all/themes/professional_theme/asvk-logo-invert-rc2-1_2.png" alt="logo"#}
+{#             style="height: 90px; margin-right: 24px">#}
+        <img src="{{ url_for('static', filename='img/IoMT_logo.svg') }}" alt="logo"
+             style="height: 90px; margin-right: 24px">
+        <h1 class="iomt">IoMT</h1>
+    </div>
+    {% block menu %}{% endblock %}
+</header>
+
+<div class="container">
+    {% block container %} {% endblock %}
+</div>
+
+</body>
+</html>
