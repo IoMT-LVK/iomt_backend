@@ -22,6 +22,17 @@ Under this concept lies stack (set of services)
 Service is multiplied task.
 Task is simple docker conteiner.
 
+# Start project in compose mode
+1. [Install docker](https://docs.docker.com/engine/install/)
+1. Clone repository
+   `git clone git@github.com:IoMT-LVK/iomt_backend.git`
+1. Create secrets: jwt\_key
+   `openssl rand -base64 32 | sudo tee /run/secrets/jwt_key > /dev/null`
+1. Build images
+   `docker compose build`
+1. Start services
+   `docker compose up`
+
 # Start project on clean server
 All commands compatible with Debian 11
 

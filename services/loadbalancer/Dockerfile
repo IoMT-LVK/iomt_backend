@@ -15,3 +15,4 @@ COPY haproxy.cfg /usr/local/etc/haproxy/haproxy.cfg
 
 # Expose ports
 EXPOSE 1344
+EXPOSE 9101

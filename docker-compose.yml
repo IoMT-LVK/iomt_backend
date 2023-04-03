@@ -1,4 +1,5 @@
 version: '3.9'
+name: iomt
 # This file configure containers and their interactions
 # https://docs.docker.com/compose/compose-file
 # Containers list:
@@ -30,11 +31,11 @@ volumes:
 # Networks - virtual networks used to communicate between containers
 networks:
   iomt:  # name
-    driver: overlay  # network driver, overlay - special driver for swarm orcherstration
+    #driver: overlay  # network driver, overlay - special driver for swarm orcherstration
     #external: true  # means that this network is already created and compose doesn't need to create it
-    attachable: true
+    #attachable: true
   monitoring:
-    driver: overlay
+    #driver: overlay
     #external: true
     #attachable: true
 
@@ -49,10 +50,6 @@ configs:
     file: ./services/alertmanager/alertmanager.yml
   nginx:
     file: ./services/nginx/default.conf
-
-secrets:
-  jwt_key:
-    external: true
 
 # Services - main element in compose file enumerating all existing services
 services:
@@ -70,7 +67,7 @@ services:
       - web_app
     configs:
       - source: nginx
-        target: "/etc/nginx/conf.d/default.conf"
+        target: "/etc/nginx/conf.d/web_app.conf"
     ports:
       - "80:80"
     networks:
@@ -107,13 +104,15 @@ services:
         target: "/mosquitto/config/mosquitto.conf"
         type: "bind"
         read_only: true
+      - source: "/run/secrets"
+        target: "/run/secrets"
+        type: "bind"
+        read_only: true
     ports: 
       - "18830-18930:1883"
     networks:
       - iomt
       - monitoring
-    secrets:
-      - jwt_key
 
   clickhouse:
     image: yandex/clickhouse-server
@@ -148,7 +147,7 @@ services:
     networks:
       - monitoring
     command:
-      - '--haproxy.scrape-uri=http://stats:stats@lb:1936/haproxy?stats;csv'
+      - '--haproxy.scrape-uri=http://balancer:1936/haproxy?stats;csv'
     deploy:
       mode: replicated
       replicas: 1
@@ -171,6 +170,7 @@ services:
       - "9090:9090"
     command:  # command overrides the default command declared by the container image
       - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--log.level=debug'
     volumes:
       - prometheus:/data
     configs:

@@ -1,22 +1,23 @@
+import paho.mqtt.client as mqtt
 import time
+import logging
 import json
+from clickhouse_driver import Client
 import jwt
 from datetime import datetime
-import logging
-from clickhouse_driver import Client as ClickHouseClient
-from paho.mqtt.client import Client as MqttClient
+
+import sys
+sys.path.append('..')
 
 click_password = "iomtpassword123"
 
-clientdb = ClickHouseClient(host='clickhouse', password = click_password)
+clientdb = Client(host='clickhouse', password = click_password)
 topicName = "c/#"
 host = "localhost"
 QOS_val = 2
 insert_bulk = {}
 with open("/run/secrets/jwt_key", "rt") as f:
     key = f.read()
-logger = logging.getLogger(__name__)
-
 count = 0
 
 def token():
@@ -30,14 +31,13 @@ def token():
     return jwt.encode(t, key, algorithm="HS256")
 
 
-class Keeper:
+class MQTT_Client:
 
-    def __init__(self, topic_name, qos_val, broker_host, broker_port=1883):
-        self.client = MqttClient()
+    def __init__(self, topic_name, qos_val, broker_host):
+        self.client = mqtt.Client()
         self.topic = topic_name
         self.qos = qos_val
         self.host = broker_host
-        self.port = broker_port
         self.client.on_connect = self.on_connect
         self.client.on_disconnect = self.on_disconnect
         self.client.on_message = self.on_message
@@ -45,7 +45,7 @@ class Keeper:
         self.client.username_pw_set(username="", password=token())
 
     def loop(self):
-        self.client.connect(self.host, port=self.port)
+        self.client.connect(self.host, port=1883)
         time.sleep(2)
         self.client.loop_forever()
 
@@ -64,6 +64,7 @@ class Keeper:
         logger.info("Logs: " + str(buf))
 
     def on_message(self, pvtClient, userdata, msg):
+        logger.info("Gotcha")
         global insert_bulk, count
         data = msg.payload.decode()
         topic = msg.topic                   # c/username/device/data
@@ -97,17 +98,20 @@ class Keeper:
             insert_bulk[usr_device] = []
 
 
-def main(**kwargs):
-    kwargs.setdefault('host', 'localhost')
-    kwargs.setdefault('port', 1883)
-    climqtt = Keeper(
-        topic_name=topicName,
-        qos_val=QOS_val,
-        broker_host=kwargs['host'],
-        broker_port=kwargs['port'],
-    )
+def run():
+    climqtt = MQTT_Client(topicName, QOS_val, host)
     climqtt.loop()
 
 
 if __name__ == '__main__':
-    main()
+    logger = logging.getLogger(__name__)
+    logger.setLevel(logging.INFO)
+    handler = logging.FileHandler('logger.log')
+    formatter = logging.Formatter('%(levelname)-5s %(name)-12s [%(asctime)s] %(message)s')
+    logger.addHandler(handler)
+    handler.setFormatter(formatter)
+
+    logger.info("started")
+
+    
+    run()

@@ -19,4 +19,4 @@ scrape_configs:
       - targets: ['localhost:9090']
   - job_name: 'lb'
     static_configs:
-      - targets: ['haproxy_exporter:9101']
+      - targets: ['balancer:9101']
