@@ -22,7 +22,7 @@ def check_user(login, password):
         }
         return True, jwt.encode(token, key, algorithm="HS256"), 200, user.user_id
     else:
-        return True, {}, 403, user.user_id
+        return True, "", 403, user.user_id
 
 def check_token(token):
     try:

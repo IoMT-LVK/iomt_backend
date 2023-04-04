@@ -18,7 +18,7 @@ def get_clickhouse_data(query):
 
 @bp.route('/users/info/', methods=['GET', 'POST'])
 def get_info():
-    token = flask.request.args.get('token')
+    token = flask.request.args.get('token') or flask.request.headers.get('Authorization').split()[1]
     user_id = flask.request.args.get('user_id')
     if not token or not user_id or not auth.check_token(token):
         return {}, 403
@@ -47,7 +47,7 @@ def get_info():
 @bp.route('/users/allow/', methods=["POST"])
 def allow_operator():
     """Allow access for concrete operator"""
-    token = flask.request.args.get('token')
+    token = flask.request.args.get('token') or flask.request.headers.get('Authorization').split()[1]
     user_id = flask.request.args.get('user_id')
     op_id = flask.request.args.get('operator_id')
     if not token or not user_id or not auth.check_token(token):
@@ -59,7 +59,7 @@ def allow_operator():
 
 @bp.route('/devices/register/', methods=['POST'])
 def register_device():
-    token = flask.request.args.get('token')
+    token = flask.request.args.get('token') or flask.request.headers.get('Authorization').split()[1]
     # FIXME: Дыра, любой зареганый пользователь может зарегать на другого девайс
     user_id = flask.request.args.get('user_id')
     if not token or not user_id or not auth.check_token(token):
@@ -87,7 +87,7 @@ def register_device():
 
 @bp.route('/devices/get/', methods=['GET'])
 def get_user_devices():
-    token = flask.request.args.get('token')
+    token = flask.request.args.get('token') or flask.request.headers.get('Authorization').split()[1]
     user_id = flask.request.args.get('user_id')
     if not token or not user_id or not auth.check_token(token):
         return {}, 403
@@ -101,7 +101,7 @@ def get_user_devices():
 
 @bp.route('/devices/types/', methods=['GET'])
 def get_devices():
-    token = flask.request.args.get('token')
+    token = flask.request.args.get('token') or flask.request.headers.get('Authorization').split()[1]
     type_id = flask.request.args.get('id')
     if not token or not auth.check_token(token):
         return {'message': "invalid token", "token": token}, 403
@@ -122,7 +122,7 @@ def get_devices():
 
 @bp.route('/devices/delete/', methods=['GET'])
 def delete_device():
-    token = flask.request.args.get('token')
+    token = flask.request.args.get('token') or flask.request.headers.get('Authorization').split()[1]
     user_id = flask.request.args.get('user_id')
     device_id = flask.request.args.get('id')
     if not token or not user_id or not auth.check_token(token):
@@ -134,7 +134,7 @@ def delete_device():
 
 @bp.route('/jwt/', methods=['GET'])
 def jwt():
-    token = flask.request.args.get('token')
+    token = flask.request.args.get('token') or flask.request.headers.get('Authorization').split()[1]
     if not token or not auth.check_token(token):
         return flask.jsonify({"valid": False})
     else:
