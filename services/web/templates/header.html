@@ -1,0 +1,15 @@
+{% extends "main.html" %}
+{% block menu %}
+    <div class="header">
+        <a class="{% if request.path == '/data/' or request.path == '/data2/' %}active{% endif %}" href="/data/">Получить
+            данные</a>
+        {#        <a class="{% if request.path == '/adduser/' %}active{% endif %}" href="/adduser/">Добавить пациента</a>#}
+        <a class="{% if request.path == '/users/' %}active{% endif %}" href="/users/">Информация о пациентах</a>
+        {#	<a class="{% if request.path == '/devices/' %}active{% endif %}" href="/devices/">Устройства</a>#}
+        <a href="/grafana/">Панели мониторинга</a>
+        <div class="header-right">
+            {% if 'Admins' in current_user.__class__.__name__ %}<a href="/admins/">Админ-панель</a>{% endif %}
+            <a href="/logout/">Выход</a>
+        </div>
+    </div>
+{% endblock %}

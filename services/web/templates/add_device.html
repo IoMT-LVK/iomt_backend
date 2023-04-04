@@ -1,0 +1,27 @@
+{% extends 'header.html' %}
+
+{% block container %}
+
+<h1>Добавить новое устройство</h1>
+
+<form class="contact_form" method="POST" action="/devices/add/", name="add-device">
+
+    <p>Введите датчики устройства в следующем формате: название датчика - имя датчика </p>
+    <p>Каждая запись должна быть на новой строке</p>
+
+<ul>
+    {{ form.csrf_token() }}
+    <li>
+        {{ form.name.label }}
+        {{ form.name }}
+    </li>
+    <li>
+        {{ form.sensors.label }}
+        {{ form.sensors }}
+    </li>
+
+</ul>
+    {{ form.submit(class_ = "submit") }}
+</form>
+
+{% endblock %}

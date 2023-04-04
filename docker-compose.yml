@@ -1,0 +1,226 @@
+version: '3.9'
+name: iomt
+# This file configure containers and their interactions
+# https://docs.docker.com/compose/compose-file
+# Containers list:
+#   [Web app]
+#   - web-app -- web interface to collected stats
+#   - nginx -- server for web-app
+#   - mongo -- database =)
+#
+#   [Mosquitto app]
+#   - iomt_01 -- mqtt server (loadbalanced)
+#   - clickhouse -- another database
+#   
+#   [Loadbalancing]
+#   - loadbalancer -- balance requests into different hosts
+#   - haproxy_exporter -- export stats from haproxy to prometheus
+#   - prometheus -- collect load info from hosts and call alerts if need
+#   - alertmanager -- receive alerts from prometheus and send requests to orbiter
+#   - orbiter -- turn on and put down new items of iomt_01
+
+
+# This element defines volumes used in project
+# volumes - is mapping between container and host file system
+# https://habr.com/ru/company/southbridge/blog/534334/
+volumes:
+  prometheus:
+  alertmanager:
+  data:  # Database
+
+# Networks - virtual networks used to communicate between containers
+networks:
+  iomt:  # name
+    #driver: overlay  # network driver, overlay - special driver for swarm orcherstration
+    #external: true  # means that this network is already created and compose doesn't need to create it
+    #attachable: true
+  monitoring:
+    #driver: overlay
+    #external: true
+    #attachable: true
+
+# Configs - is flexible way to configurate your container in **SWARM**
+# https://docs.docker.com/engine/swarm/configs/
+configs:
+  prom_config:
+    file: ./services/prometheus/prometheus.yml
+  alert_rules:
+    file: ./services/prometheus/alerts.yml
+  alertmanager:
+    file: ./services/alertmanager/alertmanager.yml
+  nginx:
+    file: ./services/nginx/default.conf
+
+# Services - main element in compose file enumerating all existing services
+services:
+
+  web_app:
+    image: web_app  # swarm ignores build and restart options and looks for image option in each container
+    build:
+      context: ./services/web
+    networks:
+      - iomt
+      
+  nginx:
+    image: nginx
+    depends_on:
+      - web_app
+    configs:
+      - source: nginx
+        target: "/etc/nginx/conf.d/01_web_app.conf"
+    ports:
+      - "80:80"
+    networks:
+      - iomt
+
+  mongo:
+    image: mongo:latest
+    restart: always
+    volumes:
+      - data:/data/db
+    networks:
+      - iomt
+
+  mosquitto:
+    image: mosquitto  # Name of local built image
+    build: ./services/mosquitto  # Context directory with Dockerfile
+    labels: [orbiter=true]  # Marks to orbiter to manage this service
+    deploy:
+      mode: replicated
+      replicas: 2
+      labels: [orbiter=true]
+      update_config:
+        parallelism: 1
+        delay: 3s
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 256M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+    volumes:
+      - source: "./services/mosquitto/broker/mosquitto.conf"
+        target: "/mosquitto/config/mosquitto.conf"
+        type: "bind"
+        read_only: true
+      - source: "/run/secrets"
+        target: "/run/secrets"
+        type: "bind"
+        read_only: true
+    ports: 
+      - "18830-18930:1883"
+    networks:
+      - iomt
+      - monitoring
+
+  clickhouse:
+    image: yandex/clickhouse-server
+    ports:
+      - "8123:8123"
+      - "9000:9000"
+      - "9009:9009"
+    networks:
+      - iomt
+    
+    ulimits:
+      nproc: 65535
+      nofile:
+        soft: 262144
+        hard: 262144
+  
+  balancer:  # Name (loadbalancer)
+    depends_on:  # Guarantee to start service after encountered below
+      - mosquitto
+    image: balancer
+    build: "./services/loadbalancer"  # context defines either a path to a directory containing a Dockerfile
+    environment:  # environment defines environment variables set in the container
+      - BALANCE=leastconn
+    ports:  # Exposes container ports
+      - "1344:1883"  # maps 1344 host port to 1883 container port
+    networks:  # defines connected networks
+      - iomt
+      - monitoring
+
+  haproxy_exporter:
+    image: prom/haproxy-exporter:v0.9.0
+    networks:
+      - monitoring
+    command:
+      - '--haproxy.scrape-uri=http://balancer:1936/haproxy?stats;csv'
+    deploy:
+      mode: replicated
+      replicas: 1
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+
+  prometheus:
+    image: prom/prometheus:v2.1.0  # hub.docker.io - registry
+                                   # prom - user/poject
+                                   # prometheus - image
+                                   # v2.1.0 - tag
+    networks:
+      - monitoring
+    ports:
+      - "9090:9090"
+    command:  # command overrides the default command declared by the container image
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--log.level=debug'
+    volumes:
+      - prometheus:/data
+    configs:
+      - source: prom_config  # take config
+        target: /etc/prometheus/prometheus.yml  # place it as target
+      - source: alert_rules
+        target: /etc/prometheus/alerts.yml
+    deploy:  # deploy specifies the configuration for the deployment and lifecycle of services
+      mode: replicated  # how to deploy: replicated - n containers on one node, global - 1 container per 1 node
+      replicas: 1  # n containers to run
+      resources:  # configures physical resource constraints for container to run on platform
+        limits:  # The platform MUST prevent container to allocate more
+          cpus: '0.25'
+          memory: 512M
+        reservations:  # The platform MUST guarantee container can allocate at least the configured amount
+          cpus: '0.25'
+          memory: 256M
+
+  alertmanager:
+    image: prom/alertmanager:v0.13.0
+    networks:
+      - monitoring
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+    volumes:
+      - alertmanager:/data
+    configs:
+      - source: alertmanager
+        target: /etc/alertmanager/alertmanager.yml
+    deploy:
+      mode: replicated
+      replicas: 1
+      resources:
+        limits:
+          memory: 128M
+        reservations:
+          memory: 64M
+      
+  orbiter:
+    image: gianarb/orbiter:latest
+    command: /bin/orbiter daemon --debug
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - 8005:8005
+    deploy:
+      placement:
+        constraints:
+          - node.role == manager
+      mode: replicated
+      replicas: 1
+    networks:
+      - monitoring
