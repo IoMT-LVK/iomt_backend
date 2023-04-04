@@ -67,7 +67,7 @@ services:
       - web_app
     configs:
       - source: nginx
-        target: "/etc/nginx/conf.d/web_app.conf"
+        target: "/etc/nginx/conf.d/01_web_app.conf"
     ports:
       - "80:80"
     networks:
