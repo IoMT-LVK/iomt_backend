@@ -1,0 +1,98 @@
+user_by_id:
+  summary: "Operations on spicified user"
+  description: "Operations on spicified user."
+
+  parameters: 
+  - $ref: "../common.yaml#/parameters/id"
+
+  get: 
+    summary: "Get info about user"
+    description: "Retrieves full information about user."
+    
+    tags:
+    - user
+    - single
+    responses:
+      "200":
+        description: "User exists, correct and successfully returned."
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: "../common.yaml#/schemas/idObject"
+                - $ref: "../schemas/user.yaml"
+      # TODO: Make 404 response
+              
+  put:
+    summary: "Edit user"
+    description: "Changes users information and commit registration."
+    
+    tags:
+    - user
+    - single
+    requestBody:
+      description: "Fileds with new values."
+      content:
+        application/json:
+          schema:
+            allOf:
+            - $ref: "../schemas/user.yaml"
+            - type: object
+              properties:
+                password:
+                  type: string
+                  format: password
+                email_confirm_token:
+                  type: string
+    responses:
+      "200":
+        description: "Successfully edited."
+      # TODO: Make 404 response
+
+  delete: 
+    summary: "Delete specified user"
+    description: "Deletes user if has permission to do that."
+
+    tags:
+    - user
+    - single
+    responses:
+      "200":
+        description: "User succesfully deleted. Empty response returned."
+
+user:
+  summary: "Operations on unspicified user"
+  description: "Operations on unspicified user (such as creating)."
+
+  post:
+    summary: "Create new user"
+    description: |
+      Submit new user to registration.
+
+      Registration completed when PUT called with registration code from email.
+#        TODO: If registartion doesn't completed after one day user removed.
+
+    tags:
+    - user
+    - single
+    responses:
+      "200":
+        description: "User succefully created."
+        content:
+          application/json:
+            schema:
+              $ref: "../common.yaml#/schemas/idObject"
+    requestBody:
+      content:
+        application/json:
+          schema:
+            allOf:
+            - $ref: "../schemas/user.yaml"
+            - type: object
+              required:
+              - login
+              - password
+              properties:
+                password:
+                  type: string
+                  format: password

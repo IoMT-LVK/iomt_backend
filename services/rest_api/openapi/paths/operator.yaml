@@ -1,0 +1,93 @@
+operator_by_id:
+  summary: "Operations on spicified operator"
+  description: "Operations on spicified operator."
+
+  parameters: 
+  - $ref: "../common.yaml#/parameters/id"
+
+  get:
+    summary: "Get operator information"
+    description: "Retreive information about specified operator."
+    
+    tags:
+    - operator
+    - single
+    responses:
+      "200": 
+        description: "Operator found and returned."
+        content:
+          application/json: 
+            schema:
+              allOf:
+                - $ref: "../common.yaml#/schemas/idObject"
+                - $ref: "../schemas/operator.yaml"
+      "404":
+        description: "Operator not found."
+
+  put:
+    summary: "Edit operator"
+    description: "Changes operator information and commit registration."
+    
+    tags:
+    - operator
+    - single
+    requestBody:
+      description: "Fileds with new values."
+      content:
+        application/json:
+          schema:
+            allOf:
+            - $ref: "../schemas/operator.yaml"
+            - type: object
+              properties:
+                password:
+                  type: string
+                  format: password
+    responses:
+      "200":
+        description: "Successfully edited."
+      # TODO: Make 404 response
+
+  delete: 
+    summary: "Delete specified operator"
+    description: "Deletes operator if has permission to do that."
+
+    tags:
+    - operator
+    - single
+    responses:
+      "200":
+        description: "Operator succesfully deleted. Empty response returned."
+
+operator:
+  summary: "Operations on unspicified operator"
+  description: "Operations on unspicified operator (such as creating)."
+
+  post:
+    summary: "Create new user"
+    description: "Simply creates new operator. Accesible only to admins."
+
+    tags:
+    - operator
+    - single
+    responses:
+      "200":
+        description: "Operator succefully created."
+        content:
+          application/json:
+            schema:
+              $ref: "../common.yaml#/schemas/idObject"
+    requestBody:
+      content:
+        application/json:
+          schema:
+            allOf:
+            - $ref: "../schemas/operator.yaml"
+            - type: object
+              required:
+              - login
+              - password
+              properties:
+                password:
+                  type: string
+                  format: password

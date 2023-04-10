@@ -1,0 +1,10 @@
+type: object
+required:
+- login
+properties:
+  login:
+    type: string
+    minLength: 4
+    maxLength: 32
+  is_admin:
+    type: boolean

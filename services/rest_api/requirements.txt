@@ -1,0 +1,5 @@
+--pre
+connexion[flask,swagger-ui,uvicorn]
+pyjwt
+peewee
+mysqlclient

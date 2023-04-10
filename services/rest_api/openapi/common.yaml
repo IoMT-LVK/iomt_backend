@@ -1,0 +1,18 @@
+schemas:
+  id:
+    type: integer
+    format: int32
+    
+  idObject:
+    type: object
+    properties:
+      id:
+        $ref: "#/schemas/id"
+
+parameters:
+  id:
+    name: "id"
+    in: path
+    required: true
+    schema:
+      $ref: "#/schemas/id"

@@ -27,6 +27,7 @@ volumes:
   prometheus:
   alertmanager:
   data:  # Database
+  db:  # MySQL database
 
 # Networks - virtual networks used to communicate between containers
 networks:
@@ -54,24 +55,38 @@ configs:
 # Services - main element in compose file enumerating all existing services
 services:
 
+  rest_api:
+    image: rest_api
+    build:
+      context: ./services/rest_api
+    networks:
+      - iomt
+    depends_on:
+      - mysql
+
   web_app:
     image: web_app  # swarm ignores build and restart options and looks for image option in each container
     build:
       context: ./services/web
     networks:
       - iomt
+    depends_on:
+      - mongo
       
   nginx:
     image: nginx
     depends_on:
       - web_app
+      - rest_api
     configs:
       - source: nginx
-        target: "/etc/nginx/conf.d/01_web_app.conf"
+        target: "/etc/nginx/conf.d/default.conf"
     ports:
       - "80:80"
     networks:
       - iomt
+    environment:
+      NGINX_ENTRYPOINT_QUIET_LOGS: 1
 
   mongo:
     image: mongo:latest
@@ -80,6 +95,19 @@ services:
       - data:/data/db
     networks:
       - iomt
+
+  mysql:
+    image: mysql
+    restart: always
+    volumes:
+      - db:/var/lib/mysql
+    networks:
+      - iomt
+    environment:
+      MYSQL_ROOT_PASSWORD: "TODOCHANGE"
+      MYSQL_DATABASE: "IoMT_DB"
+      MYSQL_USER: "rest"
+      MYSQL_PASSWORD: "TODOCHANGE"
 
   mosquitto:
     image: mosquitto  # Name of local built image
