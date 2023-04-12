@@ -1,0 +1,26 @@
+type: object
+properties:
+  general:
+    type: object
+    properties:
+      name:
+        type: string
+        minLength: 4
+        maxLength: 32
+      name_regex:
+        type: string
+        minLength: 1
+        maxLength: 128
+      type:
+        type: string
+        enum:
+        - jacket
+        - bracelet
+    required:
+    - name
+    - name_regex
+    - type
+  sensors:
+    type: object
+    additionalProperties:
+      $ref: "../common.yaml#/schemas/sensor"

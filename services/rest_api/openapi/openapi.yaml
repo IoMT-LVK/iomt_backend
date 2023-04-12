@@ -34,6 +34,14 @@ paths:
     $ref: "paths/operator.yaml#/operator_by_id"
   /operator:
     $ref: "paths/operator.yaml#/operator"
+
+  /device_type/{id}:
+    $ref: "paths/device_type.yaml#/device_type_by_id"
+  /device_type:
+    $ref: "paths/device_type.yaml#/device_type"
+  /device_types:
+    $ref: "paths/device_type.yaml#/device_types"
+
 # /device:
 #   get: {}
 #   post: {}

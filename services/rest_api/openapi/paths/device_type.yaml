@@ -1,0 +1,106 @@
+device_type_by_id:
+  summary: "Specification of device"
+  description: "Description of all sensors on cpecific devices."
+
+  parameters: 
+  - $ref: "../common.yaml#/parameters/id"
+
+  get: 
+    summary: "Get info about device type"
+    description: "Retrieves full information about device type."
+    
+    tags:
+    - device_type
+    - single
+    responses:
+      "200":
+        description: "Device type exists, correct and successfully returned."
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: "../common.yaml#/schemas/idObject"
+                - $ref: "../schemas/device_type.yaml"
+      # TODO: Make 404 response
+              
+  put:
+    summary: "Edit device type"
+    description: "Changes device configuration."
+    
+    tags:
+    - device_type
+    - single
+    requestBody:
+      description: "Fileds with new values."
+      content:
+        application/json:
+          schema:
+            $ref: "../schemas/device_type.yaml"
+    responses:
+      "200":
+        description: "Successfully edited."
+      # TODO: Make 404 response
+
+  delete: 
+    summary: "Delete device configuration"
+    description: "Deletes device configuration if has permission to do that."
+
+    tags:
+    - device_type
+    - single
+    responses:
+      "200":
+        description: "Device configuration succesfully deleted. Empty response returned."
+
+device_type:
+  summary: "Operations on unspicified device configuration"
+  description: "Operations on unspicified device configuration (such as creating)."
+
+  post:
+    summary: "Create new device configuration"
+    description: "Accept new configuration to be published."
+
+    tags:
+    - device_type
+    - single
+    responses:
+      "200":
+        description: "Device configuration succefully created."
+        content:
+          application/json:
+            schema:
+              $ref: "../common.yaml#/schemas/idObject"
+    requestBody:
+      content:
+        application/json:
+          schema:
+            $ref: "../schemas/device_type.yaml"
+
+device_types:
+  summary: "Specification of multiple devices"
+  description: "Description of all sensors on all devices."
+
+  get: 
+    summary: "Get info about all device configurations"
+    description: "Retrieves full information about device types."
+
+    parameters:
+    - in: query
+      name: "name"
+      schema:
+        type: string
+    
+    tags:
+    - device_type
+    - multiple
+    responses:
+      "200":
+        description: "Device type exists, correct and successfully returned."
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                allOf:
+                  - $ref: "../common.yaml#/schemas/idObject"
+                  - $ref: "../schemas/device_type.yaml"

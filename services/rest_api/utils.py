@@ -2,7 +2,7 @@ from connexion.jsonifier import JSONEncoder
 import jwt
 
 def decode_token(token):
-    return jwt.decode(token, 'TODO change', algorithms=['HS256'])
+    return jwt.decode(token, 'secret', algorithms=['HS256'])
 
 def not_found_handler(exception):
     return {
