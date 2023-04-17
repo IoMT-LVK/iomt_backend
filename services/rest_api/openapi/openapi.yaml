@@ -21,19 +21,29 @@ components:
       description: "JWT security scheme authorize users by JSON Web Token."
       scheme: bearer
       bearerFormat: JWT
-      x-bearerInfoFunc: utils.decode_token
-    basic:
+      x-bearerInfoFunc: utils.jwt_auth
+    basic_user:
       type: http
-      description: "Auth for generating JWT tokens"
+      description: "Auth for generating JWT tokens for user"
       scheme: basic
-      x-basicInfoFunc: utils.basic_auth
+      x-basicInfoFunc: utils.basic_user_auth
+    basic_operator:
+      type: http
+      description: "Auth for generating JWT tokens for operator"
+      scheme: basic
+      x-basicInfoFunc: utils.basic_operator_auth
       
 
 paths:
   /auth:
     $ref: "paths/auth.yaml#/auth"
+  /auth/user:
+    $ref: "paths/auth.yaml#/auth_for_user"
+  /auth/operator:
+    $ref: "paths/auth.yaml#/auth_for_operator"
 
   /user/{id}:
+      #$ref: "paths/user.yaml#/user_by_id"
     $ref: "paths/user.yaml#/user_by_id"
   /user:
     $ref: "paths/user.yaml#/user"

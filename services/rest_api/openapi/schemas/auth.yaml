@@ -1,16 +1,14 @@
-jwt_token:
-  type: string
+jwt_token_object:
+  allOf:
+  - type: object
+    properties:
+      token:
+        type: string
+  - $ref: "#/token_info"
 
-auth_form:
+token_info:
   type: object
-  required:
-  - login
-  - password
   properties:
-    is_operator:
-      type: boolean
-    login:
+    expires:
       type: string
-    password:
-      type: string
-      format: password
+      format: date-time

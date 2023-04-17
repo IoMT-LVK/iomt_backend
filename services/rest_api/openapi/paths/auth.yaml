@@ -1,39 +1,53 @@
-auth:
-  summary: "Manage yout authentifiaction"
+auth_for_user:
+  summary: "Manage your user authentifiaction"
 
   post:
-    summary: "Authentification procedure"
+    summary: "Authentification procedure for user"
 
     tags:
     - authentification
+    - user
     responses:
       "200":
         description: "You have been successfully authentificated"
         content:
           application/json:
             schema:
-              $ref: "../schemas/auth.yaml#/jwt_token"
-    requestBody:
-      content:
-        application/json:
-          schema:
-            $ref: "../schemas/auth.yaml#/auth_form"
+              $ref: "../schemas/auth.yaml#/jwt_token_object"
     security: 
-    - basic: []
+    - basic_user: []
+    operationId: views.auth.AuthView.post_user
 
-#  get:
-#    summary: "Get authentification and authorization information"
-#    
-#    tags:
-#    - authentification
-#    responses:
-#      "200": 
-#        description: "Operator found and returned."
-#        content:
-#          application/json: 
-#            schema:
-#              allOf:
-#                - $ref: "../common.yaml#/schemas/idObject"
-#                - $ref: "../schemas/operator.yaml"
-#      "404":
-#        description: "Operator not found."
+auth_for_operator:
+  summary: "Manage your operator authentifiaction"
+
+  post:
+    summary: "Authentification procedure for operator"
+
+    tags:
+    - authentification
+    - operator
+    responses:
+      "200":
+        description: "You have been successfully authentificated"
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/auth.yaml#/jwt_token_object"
+    security: 
+    - basic_operator: []
+    operationId: views.auth.AuthView.post_operator
+
+auth:
+  get:
+    summary: "Get authentification and authorization information"
+    
+    tags:
+    - authentification
+    responses:
+      "200": 
+        description: "User found and returned."
+        content:
+          application/json: 
+            schema:
+              $ref: "../schemas/auth.yaml#token_info"

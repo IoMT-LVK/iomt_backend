@@ -1,10 +1,18 @@
 from connexion import NoContent
+from connexion.exceptions import (
+    Forbidden,
+)
 from flask.views import MethodView
+from flask import abort
 import logging
 from smtplib import SMTPException
 from time import time
+from playhouse.flask_utils import get_object_or_404
 
-from models.user import User
+from models import (
+    User,
+    Operator,
+)
 from exceptions import (
     LoginExistsError,
     CantSendEmailError,
@@ -41,7 +49,8 @@ class UserView(MethodView):
             body['password_hash'], body['salt'] = hash_password(pwd)
             usr = User.create(**body)
             # TODO защититься от ошибок уникальности логина в бд
-            return {'id': usr.id}
+            return {'id': usr.id}, 201
+
         usr = User.get_or_none(login=body['login'])
         if usr is not None:
             raise LoginExistsError()
@@ -53,18 +62,49 @@ class UserView(MethodView):
             exp=time() + settings.EMAIL_LINK_LIFETIME,
             iat=time(),
         )
-        # TODO тут лучше сделать вайтлист retpath'ов чтобы левые ссылки от нашего имени не отпраылялись
+        # TODO тут лучше сделать вайтлист retpath'ов чтобы левые ссылки от нашего имени не отправлялись
         self._send_reg_email(body['email'], body['retpath'], token)
         return {'status': 'Confirmation link sent to email'} 
 
-    def put(self, id, user, token_info):
-        print(self.put.__qualname__)
-        return NoContent
+    def put(self, body, user, token_info, id=None):
+        if id is None and type(user) is None:
+            usr, id = user, user.id
+        else:
+            usr = get_object_or_404(User, (User.id == id))
+        
+        if (
+            type(user) is User and id == user.id or
+            type(user) is Operator and operator.is_admin and id is not None
+        ):
+            User.set_by_id(id, body)
+            return NoContent
+        abort(403)
 
-    def delete(self, id, user, token_info):
-        print(self.delete.__qualname__)
-        return NoContent
+    def delete(self, user, token_info, id=None):
+        if id is None and type(user) is User:
+            usr, id = user, user.id
+        else:
+            usr = get_object_or_404(User, (User.id == id))
 
-    def get(self, id, user, token_info):
-        user = User.get_by_id(id)
-        return jsonify(user)
+        if (
+            type(user) is User and id == user.id or
+            type(user) is Operator and user.is_admin
+        ):
+            usr.delete_instance()
+            return NoContent
+        abort(403)
+        
+
+    def get(self, user, token_info, id=None):
+        if id is None and type(user) is User:
+            usr_by_id, id = user, user.id
+        else:
+            usr_by_id = get_object_or_404(User, (User.id == id))
+
+        if (
+            type(user) is Operator and id in user.allowed or
+            type(user) is Operator and user.is_admin or
+            type(user) is User and user.id == id
+        ):
+            return usr_by_id.serialize()
+        abort(403)

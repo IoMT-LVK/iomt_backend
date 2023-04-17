@@ -4,17 +4,52 @@ import jwt
 import hashlib
 from email.message import EmailMessage
 from smtplib import SMTP_SSL
+from flask import request
 
 import dev_settings as settings
+from models import (
+    User,
+    Operator,
+)
 
 
-def encode_token(data, secret=settings.JWT_KEY, **extra):
+def encode_token(data={}, secret=settings.JWT_KEY, **extra):
     return jwt.encode(data | extra, secret, algorithm='HS256')
 
 def decode_token(token, secret=settings.JWT_KEY):
     return jwt.decode(token, secret, algorithms=['HS256'])
 
-def basic_auth(username, password):
+def jwt_auth(token):
+    # TODO Что если токен просрочен или не валидный?
+    token_info = decode_token(token)
+    if token_info is None:
+        return None
+    type, id = token_info['sub'].split('/', 1)
+    if type == 'user':
+        token_info['sub'] = User.get_by_id(id)
+    elif type == 'operator':
+        token_info['sub'] = Operator.get_by_id(id)
+    else:
+        raise ValueError()
+    return token_info
+
+
+def basic_user_auth(username, password):
+    usr = User.get_or_none(login=username)
+    if usr is None:
+        return None
+    pwd_hash, _ = hash_password(password, usr.salt)
+    if usr.password_hash == pwd_hash:
+        return {'sub': usr}
+    return None
+
+def basic_operator_auth(username, password):
+    usr = Operator.get_or_none(login=username)
+    if usr is None:
+        return None
+    pwd_hash, _ = hash_password(password, usr.salt)
+    if usr.password_hash == pwd_hash:
+        return {'sub': usr}
     return None
 
 def send_email(subject, text, to):
@@ -29,10 +64,10 @@ def send_email(subject, text, to):
     server_ssl.send_message(msg)
     server_ssl.close()
 
-def hash_password(pwd):
+def hash_password(pwd, salt=None):
     if len(pwd) > settings.PASSWORD_MAX_LEN:
         raise ValueError()
-    salt = os.urandom(settings.PASSWORD_HASH_SALT_LEN)
+    salt = salt or os.urandom(settings.PASSWORD_HASH_SALT_LEN)
     pwd_hash = hashlib.scrypt(
         pwd.encode(),
         salt=salt,
@@ -41,7 +76,7 @@ def hash_password(pwd):
         p=settings.PASSWORD_HASH_PARALLEL,
         dklen=settings.PASSWORD_HASH_LEN,
     )
-    return salt, pwd_hash
+    return pwd_hash, salt
 
                                            
 class SerializeJSONEncoder(JSONEncoder):   
@@ -53,4 +88,3 @@ class SerializeJSONEncoder(JSONEncoder):
         else:
             return serialized
         return super().default(obj)
-

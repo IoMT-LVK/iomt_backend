@@ -23,6 +23,20 @@ schemas:
         type: string
         format: uuid
 
+  problem:
+    type: object
+    properties:
+      status:
+        type: integer
+      title:
+        type: string
+      detail:
+        type: string
+      type:
+        type: string
+      instance:
+        type: string
+
 parameters:
   id:
     name: "id"
@@ -30,3 +44,31 @@ parameters:
     required: true
     schema:
       $ref: "#/schemas/id"
+
+responses:
+  "403":
+    description: "You don't have the permission to access the requested resource"
+    content:
+      application/problem+json:
+        schema:
+          $ref: "#/schemas/problem"
+        example:
+          {
+            "type": "about:blank",
+            "title": "Forbidden",
+            "detail": "You don't have the permission to access the requested resource. It is either read-protected or not readable by the server.",
+            "status": 403
+          }
+  "404":
+    description: "The requested URL was not found on the server"
+    content:
+      application/problem+json:
+        schema:
+          $ref: "#/schemas/problem"
+        example:
+          {
+            "type": "about:blank",
+            "title": "Not Found",
+            "detail": "The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.",
+            "status": 404
+          }

@@ -19,7 +19,7 @@ class User(BaseModel):
         unique=True,
         max_length=32,
     )
-    password = FixedCharField(null=False, max_length=128)
+    password_hash = BlobField(null=False)
     salt = BlobField(null=False)
 
     weight = IntegerField(null=True)
@@ -32,11 +32,12 @@ class User(BaseModel):
     allowed = ManyToManyField(Operator, 'allowed_users')
 
     _do_not_serialize = [
-        'password',
+        'password_hash',
         'salt',
     ]
 
     def serialize(self):
         srlz = super().serialize()
         srlz['allowed'] = [op.id for op in self.allowed]
+        print(f"{srlz=}")
         return srlz

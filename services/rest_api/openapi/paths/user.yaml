@@ -1,5 +1,4 @@
 user_by_id:
-
   summary: "Operations on spicified user"
   description: "Operations on spicified user."
 
@@ -20,9 +19,18 @@ user_by_id:
           application/json:
             schema:
               allOf:
-                - $ref: "../common.yaml#/schemas/idObject"
-                - $ref: "../schemas/user.yaml"
-      # TODO: Make 404 response
+              - $ref: "../schemas/user.yaml"
+              - type: object
+                properties:
+                  allowed:
+                    description: "List of operators allowed to read users information."
+                    type: array
+                    items:
+                      $ref: "../common.yaml#/schemas/id"
+      "404":
+        $ref: "../common.yaml#/responses/404"
+      "403":
+        $ref: "../common.yaml#/responses/403"
               
   put:
     summary: "Edit user"
@@ -32,7 +40,6 @@ user_by_id:
     - user
     - single
     requestBody:
-      description: "Fileds with new values."
       content:
         application/json:
           schema:
@@ -40,15 +47,18 @@ user_by_id:
             - $ref: "../schemas/user.yaml"
             - type: object
               properties:
-                password:
-                  type: string
-                  format: password
-                email_confirm_token:
-                  type: string
+                allowed:
+                  description: "List of operators allowed to read users information."
+                  type: array
+                  items:
+                    $ref: "../common.yaml#/schemas/id"
     responses:
       "200":
         description: "Successfully edited."
-      # TODO: Make 404 response
+      "403":
+        $ref: "../common.yaml#/responses/403"
+      "404":
+        $ref: "../common.yaml#/responses/404"
 
   delete: 
     summary: "Delete specified user"
@@ -58,8 +68,12 @@ user_by_id:
     - user
     - single
     responses:
-      "200":
+      "204":
         description: "User succesfully deleted. Empty response returned."
+      "403":
+        $ref: "../common.yaml#/responses/403"
+      "404":
+        $ref: "../common.yaml#/responses/404"
 
 user:
   summary: "Operations on unspicified user"
@@ -79,16 +93,16 @@ user:
     - single
     responses:
       "200":
+        description: "User submited. Confirmation link sent to email."
+        content:
+          application/json:
+            example: {"status": "Confirmation link sent to email"}
+      "201":
         description: "User succefully created."
         content:
           application/json:
             schema:
-              oneOf:
-              - $ref: "../common.yaml#/schemas/idObject"
-              - type: object
-                properties:
-                  status:
-                    type: string
+              $ref: "../common.yaml#/schemas/idObject"
     requestBody:
       content:
         application/json:
@@ -123,9 +137,6 @@ user:
                 properties:
                   retpath:
                     type: string
-                  password:
-                    type: string
-                    format: password
                 required:
                 - name
                 - surname
@@ -134,3 +145,73 @@ user:
                 - password
                 - retpath
     security: []
+
+  get: 
+    summary: "Get info about user from token"
+    description: "Retrieves full information about user.\n\n*Method allowed only for accounts with type 'User' (not 'Operator')*"
+    
+    tags:
+    - user
+    - single
+    responses:
+      "200":
+        description: "User exists, correct and successfully returned."
+        content:
+          application/json:
+            schema:
+              allOf:
+              - $ref: "../schemas/user.yaml"
+              - type: object
+                properties:
+                  allowed:
+                    description: "List of operators allowed to read users information."
+                    type: array
+                    items:
+                      $ref: "../common.yaml#/schemas/id"
+
+  delete: 
+    summary: "Delete user from token"
+    description: "Deletes user if has permission to do that."
+
+    tags:
+    - user
+    - single
+    responses:
+      "204":
+        description: "User succesfully deleted. Empty response returned."
+      "403":
+        $ref: "../common.yaml#/responses/403"
+      "404":
+        $ref: "../common.yaml#/responses/404"
+
+    # Без этой строки почему то не заводилось, хотя с GET всё работает
+    operationId: views.user.UserView.delete
+
+  put:
+    summary: "Edit user from token"
+    description: "Changes users information and commit registration."
+    
+    tags:
+    - user
+    - single
+    requestBody:
+      content:
+        application/json:
+          schema:
+            allOf:
+            - $ref: "../schemas/user.yaml"
+            - type: object
+              properties:
+                allowed:
+                  description: "List of operators allowed to read users information."
+                  type: array
+                  items:
+                    $ref: "../common.yaml#/schemas/id"
+    responses:
+      "200":
+        description: "Successfully edited."
+      "403":
+        $ref: "../common.yaml#/responses/403"
+      "404":
+        $ref: "../common.yaml#/responses/404"
+    operationId: views.user.UserView.put

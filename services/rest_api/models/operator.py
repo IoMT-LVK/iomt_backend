@@ -1,7 +1,7 @@
 from peewee import (
     AutoField,
     CharField,
-    FixedCharField,
+    BlobField,
     BooleanField,
 )
 
@@ -17,7 +17,8 @@ class Operator(BaseModel):
         unique=True,
         max_length=32,
     )
-    password = FixedCharField(null=False, max_length=128)
+    password_hash = BlobField(null=False)
+    salt = BlobField(null=False)
     is_admin = BooleanField(null=False, default=False)
 
     _do_not_serialize = [

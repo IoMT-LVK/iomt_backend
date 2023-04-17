@@ -1,6 +1,7 @@
 SERVICE_NAME = 'IoMT_REST'
 
 JWT_KEY = '<same_as JWT_KEY file>'
+JWT_TOKEN_LIFETIME = 3 * 30 * 24 * 60 * 60  # 3 monts
 
 DATABASE = 'mysql://rest:TODOCHANGE@mysql:3306/IoMT_DB'
 FLASKDB_EXCLUDED_ROUTES = tuple()
@@ -10,7 +11,7 @@ MAIL_ADDRESS = 'iomt.confirmation@gmail.com'
 MAIL_PASSWORD = 'feyplseixdsorljy'
 MAIL_PORT = 465
 EMAIL_JWT_KEY = '<replace_this>'
-EMAIL_LINK_LIFETIME = 30 * 24 * 60 * 60
+EMAIL_LINK_LIFETIME = 24 * 60 * 60
 
 PASSWORD_MAX_LEN = 64
 PASSWORD_HASH_SALT_LEN = 16

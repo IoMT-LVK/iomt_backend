@@ -8,4 +8,4 @@ class BaseModel(db_wrapper.Model):
     _do_not_serialize = []
 
     def serialize(self):
-        return {name: val for name, val in vars(self).items() if name not in _do_not_serialize}
+        return {name: val for name, val in self.__data__.items() if name not in self._do_not_serialize}
