@@ -1,9 +1,42 @@
+from peewee import (
+    AutoField,
+    CharField,
+    FixedCharField,
+    IntegerField,
+    DateField,
+    ManyToManyField,
+    BlobField,
+)
 
 from .base import BaseModel
+from .operator import Operator
 
 
 class User(BaseModel):
-    # id = IntegerField()
+    login = CharField(
+        null=False,
+        index=True,
+        unique=True,
+        max_length=32,
+    )
+    password = FixedCharField(null=False, max_length=128)
+    salt = BlobField(null=False)
+
+    weight = IntegerField(null=True)
+    height = IntegerField(null=True)
+    email = CharField(null=False, max_length=320)
+    name = CharField(null=False, max_length=32)
+    surname = CharField(null=False, max_length=32)
+    patronymic = CharField(null=True, max_length=32)
+    born = DateField(null=True)
+    allowed = ManyToManyField(Operator, 'allowed_users')
+
+    _do_not_serialize = [
+        'password',
+        'salt',
+    ]
 
     def serialize(self):
-        return {"TODO": "serialize"}
+        srlz = super().serialize()
+        srlz['allowed'] = [op.id for op in self.allowed]
+        return srlz

@@ -1,0 +1,39 @@
+auth:
+  summary: "Manage yout authentifiaction"
+
+  post:
+    summary: "Authentification procedure"
+
+    tags:
+    - authentification
+    responses:
+      "200":
+        description: "You have been successfully authentificated"
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/auth.yaml#/jwt_token"
+    requestBody:
+      content:
+        application/json:
+          schema:
+            $ref: "../schemas/auth.yaml#/auth_form"
+    security: 
+    - basic: []
+
+#  get:
+#    summary: "Get authentification and authorization information"
+#    
+#    tags:
+#    - authentification
+#    responses:
+#      "200": 
+#        description: "Operator found and returned."
+#        content:
+#          application/json: 
+#            schema:
+#              allOf:
+#                - $ref: "../common.yaml#/schemas/idObject"
+#                - $ref: "../schemas/operator.yaml"
+#      "404":
+#        description: "Operator not found."

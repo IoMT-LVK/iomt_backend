@@ -28,6 +28,8 @@ Task is simple docker conteiner.
    `git clone git@github.com:IoMT-LVK/iomt_backend.git`
 1. Create secrets: jwt\_key
    `openssl rand -base64 32 | sudo tee /run/secrets/jwt_key > /dev/null`
+1. Create and configure flask settings
+   `cp iomt_backend/services/rest_api/settings.py /run/secrets/flask_settings.py; vim /run/secrets/flask_settings.py`
 1. Build images
    `docker compose build`
 1. Start services

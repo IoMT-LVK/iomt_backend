@@ -63,6 +63,8 @@ services:
       - iomt
     depends_on:
       - mysql
+    environment:
+      FLASK_SETTINGS: "/run/secrets/flask_settings.py"
 
   web_app:
     image: web_app  # swarm ignores build and restart options and looks for image option in each container
@@ -103,6 +105,9 @@ services:
       - db:/var/lib/mysql
     networks:
       - iomt
+    command:
+      - '--character-set-server=utf8mb4'
+      - '--collation-server=utf8mb4_unicode_ci'
     environment:
       MYSQL_ROOT_PASSWORD: "TODOCHANGE"
       MYSQL_DATABASE: "IoMT_DB"

@@ -26,12 +26,12 @@ properties:
     description: "Optinonal users patronymic."
     type: string
     maxLength: 32
-  birth_ts:
+  born:
     description: "Format YYYY-MM-DD"
     type: string
     format: date
-  allowed:
-    description: "List of operators allowed to read users information."
-    type: array
-    items:
-      $ref: "../common.yaml#/schemas/id"
+#  allowed:
+#    description: "List of operators allowed to read users information."
+#    type: array
+#    items:
+#      $ref: "../common.yaml#/schemas/id"

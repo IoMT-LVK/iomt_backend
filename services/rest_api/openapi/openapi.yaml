@@ -22,9 +22,17 @@ components:
       scheme: bearer
       bearerFormat: JWT
       x-bearerInfoFunc: utils.decode_token
+    basic:
+      type: http
+      description: "Auth for generating JWT tokens"
+      scheme: basic
+      x-basicInfoFunc: utils.basic_auth
       
 
 paths:
+  /auth:
+    $ref: "paths/auth.yaml#/auth"
+
   /user/{id}:
     $ref: "paths/user.yaml#/user_by_id"
   /user:
@@ -68,11 +76,13 @@ security:
 - jwt: []
 
 tags:
+- name: "authentification"
+  description: "Endpoints for managing your authentification"
 - name: "user"
   description: "Endpoints for interaction with *User* objects."
 - name: "operator"
   description: "Endpoints for interaction with *Operator* objects."
-- name: "device"
+- name: "device_type"
   description: "Endpoints for interaction with known devices."
 - name: "userdevice"
   description: "Endpoints for interaction with users devices."

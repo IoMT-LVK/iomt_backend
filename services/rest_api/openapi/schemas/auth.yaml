@@ -1,0 +1,16 @@
+jwt_token:
+  type: string
+
+auth_form:
+  type: object
+  required:
+  - login
+  - password
+  properties:
+    is_operator:
+      type: boolean
+    login:
+      type: string
+    password:
+      type: string
+      format: password

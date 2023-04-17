@@ -1,4 +1,5 @@
 user_by_id:
+
   summary: "Operations on spicified user"
   description: "Operations on spicified user."
 
@@ -67,11 +68,12 @@ user:
   post:
     summary: "Create new user"
     description: |
-      Submit new user to registration.
+      Registration process consist of two steps.
+      1. Submit user data with retpath.
+         Server will format confirmation link with retpath base and send it on specified email.
+      1. User go to link from message on specified resource, front-back send POST query with singl field 'email_confirm_token'.
 
-      Registration completed when PUT called with registration code from email.
-#        TODO: If registartion doesn't completed after one day user removed.
-
+      If registartion doesn't completed after one day user removed.
     tags:
     - user
     - single
@@ -81,19 +83,54 @@ user:
         content:
           application/json:
             schema:
-              $ref: "../common.yaml#/schemas/idObject"
+              oneOf:
+              - $ref: "../common.yaml#/schemas/idObject"
+              - type: object
+                properties:
+                  status:
+                    type: string
     requestBody:
       content:
         application/json:
+          examples:
+            submit:
+              summary: Submitting new registration after sending email
+              value:  {
+                    'login': 'hasbik',
+                    'password': 'U c4nt cяack m3',
+                    'email': 'hasbik@example.com',
+                    'name': 'Хасбула',
+                    'surname': 'Магомедов',
+                    'patronymic': 'Магомедович',
+                    'born': '2002-07-07',
+                    'weight': 19,
+                    'height': 95,
+                    'retpath': 'https://example.com/reg_user'
+                }
+            commit:
+              summary: Commiting new registration after sending email
           schema:
-            allOf:
-            - $ref: "../schemas/user.yaml"
+            oneOf:
             - type: object
-              required:
-              - login
-              - password
               properties:
-                password:
+                email_confirm_token:
                   type: string
-                  format: password
+              required:
+              - email_confirm_token
+            - allOf:
+              - $ref: "../schemas/user.yaml"
+              - type: object
+                properties:
+                  retpath:
+                    type: string
+                  password:
+                    type: string
+                    format: password
+                required:
+                - name
+                - surname
+                - email
+                - login
+                - password
+                - retpath
     security: []
