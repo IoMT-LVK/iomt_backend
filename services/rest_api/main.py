@@ -13,7 +13,6 @@ from exceptions import (
 from models.base import db_wrapper
 from models.user import User
 from models.operator import Operator
-# from utils import SerializeJSONEncoder
 import dev_settings as settings
     
 app = App(__name__, specification_dir='openapi/')
@@ -24,7 +23,6 @@ app.add_error_handler(BaseApiError, error_handler)
 flask_app = app.app
 flask_app.config.from_object('dev_settings')
 flask_app.config.from_envvar('FLASK_SETTINGS', silent=True)
-# flask_app.json_encoder = SerializeJSONEncoder
 settings.init_app(flask_app)
 
 

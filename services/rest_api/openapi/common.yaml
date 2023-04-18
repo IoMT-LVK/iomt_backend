@@ -72,3 +72,16 @@ responses:
             "detail": "The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.",
             "status": 404
           }
+  "409":
+    description: "Login collision"
+    content:
+      application/problem+json:
+        schema:
+          $ref: "#/schemas/problem"
+        example:
+          {
+            "type": "about:blank",
+            "title": "Conflict",
+            "detail": "A conflict happened while processing the request. The resource might have been modified while the request was being processed.",
+            "status": 409
+          }

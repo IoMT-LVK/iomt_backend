@@ -2,32 +2,28 @@ operator_by_id:
   summary: "Operations on spicified operator"
   description: "Operations on spicified operator."
 
-  parameters: 
+  parameters:
   - $ref: "../common.yaml#/parameters/id"
 
   get:
     summary: "Get operator information"
     description: "Retreive information about specified operator."
-    
+
     tags:
     - operator
     - single
     responses:
-      "200": 
+      "200":
         description: "Operator found and returned."
         content:
-          application/json: 
+          application/json:
             schema:
-              allOf:
-                - $ref: "../common.yaml#/schemas/idObject"
-                - $ref: "../schemas/operator.yaml"
-      "404":
-        description: "Operator not found."
+              $ref: "../schemas/operator.yaml"
 
   put:
     summary: "Edit operator"
-    description: "Changes operator information and commit registration."
-    
+    description: "Changes operator information."
+
     tags:
     - operator
     - single
@@ -36,19 +32,12 @@ operator_by_id:
       content:
         application/json:
           schema:
-            allOf:
-            - $ref: "../schemas/operator.yaml"
-            - type: object
-              properties:
-                password:
-                  type: string
-                  format: password
+            $ref: "../schemas/operator.yaml"
     responses:
       "200":
         description: "Successfully edited."
-      # TODO: Make 404 response
 
-  delete: 
+  delete:
     summary: "Delete specified operator"
     description: "Deletes operator if has permission to do that."
 
@@ -61,22 +50,23 @@ operator_by_id:
 
 operator:
   summary: "Operations on unspicified operator"
-  description: "Operations on unspicified operator (such as creating)."
+  description: "Opertions on user from auth token (or registration)."
 
   post:
-    summary: "Create new user"
-    description: "Simply creates new operator. Accesible only to admins."
+    summary: "Create new operator"
+    description: "Simply creates new operator. Accessible only to admins."
 
     tags:
     - operator
     - single
     responses:
-      "200":
+      "201":
         description: "Operator succefully created."
         content:
           application/json:
             schema:
               $ref: "../common.yaml#/schemas/idObject"
+
     requestBody:
       content:
         application/json:
@@ -87,7 +77,47 @@ operator:
               required:
               - login
               - password
-              properties:
-                password:
-                  type: string
-                  format: password
+
+  delete:
+    summary: "Delete operator from token"
+    description: "Deletes operator if has permission to do that."
+
+    tags:
+    - operator
+    - single
+    responses:
+      "204":
+        description: "Operator succesfully deleted. Empty response returned."
+    operationId: views.operator.OperatorView.delete
+
+  get:
+    summary: "Get operator information from token"
+    description: "Retreive information about specified operator."
+
+    tags:
+    - operator
+    - single
+    responses:
+      "200":
+        description: "Operator found and returned."
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/operator.yaml"
+
+  put:
+    summary: "Edit operator from token"
+    description: "Changes operator information."
+
+    tags:
+    - operator
+    - single
+    requestBody:
+      content:
+        application/json:
+          schema:
+            $ref: "../schemas/operator.yaml"
+    responses:
+      "200":
+        description: "Successfully edited."
+    operationId: views.operator.OperatorView.put

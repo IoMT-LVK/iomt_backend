@@ -22,5 +22,6 @@ class Operator(BaseModel):
     is_admin = BooleanField(null=False, default=False)
 
     _do_not_serialize = [
-        'password',
+        'password_hash',
+        'salt',
     ]

@@ -21,6 +21,7 @@ def decode_token(token, secret=settings.JWT_KEY):
 
 def jwt_auth(token):
     # TODO Что если токен просрочен или не валидный?
+    # или пользователь токена удален
     token_info = decode_token(token)
     if token_info is None:
         return None

@@ -43,7 +43,6 @@ paths:
     $ref: "paths/auth.yaml#/auth_for_operator"
 
   /user/{id}:
-      #$ref: "paths/user.yaml#/user_by_id"
     $ref: "paths/user.yaml#/user_by_id"
   /user:
     $ref: "paths/user.yaml#/user"
@@ -80,7 +79,7 @@ paths:
 #   post: {}
 #   put: {}
 #   delete: {}
-#
+
 
 security:
 - jwt: []

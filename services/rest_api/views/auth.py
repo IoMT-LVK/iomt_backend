@@ -14,6 +14,10 @@ class AuthView(MethodView):
 
     def post(self, user, token_info, body):
         expires = int(time()) + settings.JWT_TOKEN_LIFETIME
+        # Такое форматирование чревато тем, 
+        # что токены выпущенные для удаленного пользователя с id=n
+        # будут валидны при переиспользовании id для нового поьзователя
+        # по идее такого переиспользования не должно быть, но указать на это стоит
         if type(user) is User:
             uri = f'user/{user.id}'
         elif type(user) is Operator:
