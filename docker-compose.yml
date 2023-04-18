@@ -141,8 +141,6 @@ services:
         target: "/run/secrets"
         type: "bind"
         read_only: true
-    ports: 
-      - "18830-18930:1883"
     networks:
       - iomt
       - monitoring

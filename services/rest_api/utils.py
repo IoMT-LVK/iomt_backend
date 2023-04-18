@@ -4,7 +4,6 @@ import jwt
 import hashlib
 from email.message import EmailMessage
 from smtplib import SMTP_SSL
-from flask import request
 
 import dev_settings as settings
 from models import (

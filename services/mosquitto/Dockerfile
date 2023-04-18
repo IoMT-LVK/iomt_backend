@@ -2,13 +2,10 @@ FROM iegomez/mosquitto-go-auth:latest
 
 RUN apt update
 RUN apt install -y python3-pip
-#RUN /usr/bin/python3 -m ensurepip
 
 # Configure supervisor
 RUN pip3 install supervisor
-COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
-RUN echo_supervisord_conf > /etc/supervisor/supervisord.conf
-RUN echo "[include]\nfiles=conf.d/*" >> /etc/supervisor/supervisord.conf
+COPY supervisord.conf /etc/supervisor/supervisord.conf
 
 # Configure broker
 COPY broker/mosquitto.conf /mosquitto/config/mosquitto.conf

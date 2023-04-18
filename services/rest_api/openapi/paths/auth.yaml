@@ -16,6 +16,10 @@ auth_for_user:
               $ref: "../schemas/auth.yaml#/jwt_token_object"
     security: 
     - basic_user: []
+    # jwt нужен в первую очередь для mosquitto
+    # дополнительно появляется возможность получать новый токен по старому
+    # с точки зрения безопасности это не очень хорошо, но пока ОКэй
+    - jwt: []
     operationId: views.auth.AuthView.post_user
 
 auth_for_operator:
