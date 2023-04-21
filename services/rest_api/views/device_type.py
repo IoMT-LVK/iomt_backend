@@ -9,18 +9,18 @@ hexoskin = {
         "name_regex": "HX-(\\d)+",
         "type": "vest",
     },
-    "sensors": {
-        "heart_rate": {
+    "characteristics": {
+        "heartRate": {
             "name": "Heart Rate",
             "service_uuid": "0000180d-0000-1000-8000-00805f9b34fb",
             "sensor_uuid": "00002a37-0000-1000-8000-00805f9b34fb",
         },
-        "respiration_rate": {
+        "respirationRate": {
             "name": "Respiration Rate",
             "service_uuid": "3b55c581-bc19-48f0-bd8c-b522796f8e24",
             "sensor_uuid": "9bc730c3-8cc0-4d87-85bc-573d6304403c",
         },
-        "accelerometer_rate": {
+        "accelerometerRate": {
             "name": "Accelerometer Rate",
             "service_uuid": "bdc750c7-2649-4fa8-abe8-fbf25038cda3",
             "sensor_uuid": "75246a26-237a-4863-aca6-09b639344f43",
@@ -31,17 +31,17 @@ hexoskin = {
 odlid = {
     "id": 1,
     "general": {
-        "name": "odlid",
-        "name_regex": "^sinep$",
-        "type": "bracelet",
+        "name": "Mi Band",
+        "name_regex": ".*",
+        "type": "bracelet"
     },
-    "sensors": {
-        "heart_rate": {
+    "characteristics": {
+        "heartRate": {
             "name": "Heart Rate",
             "service_uuid": "0000180d-0000-1000-8000-00805f9b34fb",
-            "sensor_uuid": "00002a37-0000-1000-8000-00805f9b34fb",
-        },
-    },
+            "sensor_uuid": "00002a37-0000-1000-8000-00805f9b34fb"
+        }
+    }
 }
 
 
