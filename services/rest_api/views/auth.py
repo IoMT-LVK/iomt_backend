@@ -33,12 +33,12 @@ class AuthView(MethodView):
             
         return {
             'token': token,
-            'expires': datetime.fromtimestamp(expires),
+            'expires': datetime.fromtimestamp(expires).astimezone(),
         } 
 
     post_user = post_operator = post
 
     def get(self, user, token_info):
         return {
-            'expires': datetime.fromtimestamp(int(token_info['exp'])),
+            'expires': datetime.fromtimestamp(token_info['exp']).astimezone()
         }
