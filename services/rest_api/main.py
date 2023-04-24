@@ -1,5 +1,10 @@
 #-*- coding: utf-8 -*-
-from collections import namedtuple
+"""
+Main run file for REST
+
+Contain `app` variable which you need pass to ASGI app (uvicorn)
+"""
+
 from connexion import App
 from connexion.resolver import MethodViewResolver
 
@@ -7,13 +12,19 @@ from exceptions import (
     BaseApiError,
     error_handler,
 )
+import exceptions.init_app
 from models.base import db_wrapper
-from models.user import User
-from models.operator import Operator
+from models.characteristic import Characteristic
+from models import (
+    User,
+    Operator,
+    Device,
+)
 import dev_settings as settings
     
 app = App(__name__, specification_dir='openapi/')
 app.add_api('openapi.yaml', resolver=MethodViewResolver('views'))
+exceptions.init_app(app)
 app.add_error_handler(BaseApiError, error_handler)
 
 flask_app = app.app
@@ -26,6 +37,8 @@ db_wrapper.database.create_tables([
     User, 
     Operator,
     User.allowed.get_through_model(),
+    Device,
+    Characteristic,
 ])
 
 if __name__ == "__main__":

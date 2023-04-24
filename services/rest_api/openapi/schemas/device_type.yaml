@@ -6,7 +6,7 @@ properties:
       name:
         type: string
         minLength: 4
-        maxLength: 32
+        maxLength: 64
       name_regex:
         type: string
         minLength: 1
@@ -22,5 +22,6 @@ properties:
     - type
   sensors:
     type: object
+    minProperties: 1
     additionalProperties:
       $ref: "../common.yaml#/schemas/sensor"

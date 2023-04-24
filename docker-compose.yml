@@ -168,7 +168,7 @@ services:
     environment:  # environment defines environment variables set in the container
       - BALANCE=leastconn
     ports:  # Exposes container ports
-      - "1883:1883"  # maps 1344 host port to 1883 container port
+      - "1883:1883"
     networks:  # defines connected networks
       - iomt
       - monitoring

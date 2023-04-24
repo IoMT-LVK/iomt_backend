@@ -39,5 +39,4 @@ class User(BaseModel):
     def serialize(self):
         srlz = super().serialize()
         srlz['allowed'] = [op.id for op in self.allowed]
-        print(f"{srlz=}")
         return srlz

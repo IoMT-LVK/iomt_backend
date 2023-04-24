@@ -14,7 +14,6 @@ from models import (
     Operator,
 )
 from exceptions import (
-    LoginExistsError,
     CantSendEmailError,
 )
 from utils import (
@@ -33,6 +32,7 @@ class UserView(MethodView):
     def _send_reg_email(self, email, retpath, token):
         link = retpath + f"?token={token}"
         try:
+            raise SMTPException
             send_email(
                 subject="Commit registration on IoMT",
                 text=f"Commit your registration on IoMT service, by clicking on link: {link}",
@@ -53,7 +53,7 @@ class UserView(MethodView):
 
         usr = User.get_or_none(login=body['login'])
         if usr is not None:
-            raise LoginExistsError()
+            abort(409, "Login exists")
 
         token = encode_token(
             body,

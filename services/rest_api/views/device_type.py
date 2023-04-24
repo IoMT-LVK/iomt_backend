@@ -2,6 +2,11 @@ import re
 from connexion import NoContent
 from flask.views import MethodView
 
+from models import (
+    Device,
+    Operator,
+)
+
 hexoskin = {
     "id": 0,
     "general": {
@@ -44,12 +49,64 @@ odlid = {
     }
 }
 
-
 class DeviceTypeView(MethodView):
 
-    def post(self, user, token_info):
-        print(self.post.__qualname__)
-        return {'id': 1} 
+    def _get_or_create_characteristics(self, chars):
+        #char_obj = [Characteristic(**char) for 
+
+        # Вернем ошибку если такой slug уже есть
+        processed_chars = {key: None for key in chars.keys}
+        same_slug = Characteristic.select().where(
+            Characteristic.slug.in_(chars.keys())
+        ).execute()
+
+        for exist_char in same_slug:
+            slug = exist_char.slug
+            cond_char = chars[slug]
+            if (
+                cond_char['service_uuid'] != exist_char.service_uuid or
+                cond_char['characteristic_uuid'] != exist_char.characteristic_uuid
+            ): 
+                abort(409, f"Mismatch configuration for {exist_char.slug}")
+            chars.pop(slug)
+        
+        # Вернем ошибку если есть такая пара uuidов
+        # код очень страшный, но ничего лучше не придумал
+        # TODO переделать на какие-нибудь joinы или что-то подобное
+        same_uuid = Characteristic.select().where(
+            Characteristic.characteristic_uuid.in_(
+                char['characteristic_uuid']
+                for char in chars
+            )
+        ).execute()
+        for cond_char in chars:
+            for query_char in same_uuid:
+                if any(
+                    query_char.service_uuid == cond_char['serice_uuid'] and
+                    query_char.characteristic_uuid == cond_char['characteristic_uuid']
+                ):
+                    abort(409, f"Conflict uuids: {cond_char.service_uuid}, {cond_char.characteristic_uuid}")
+        return same_slug, chars
+
+    def post(self, user, token_info, body):
+        if type(user) is not Operator or not user.is_admin:
+            abort(403)
+
+        exists, insert = self._get_or_insert_characteristics(body['characteristics'])
+
+        device = Device.get_or_none(
+            (Device.name == body['name']) |
+            (Device.name_regex == body['name_regex'])
+        )
+
+        if device is not None:
+            abort(409, f"Device {device.name} exists")
+
+        chars = Characteristic.insert_many(chars).execute()
+        device.characteristics = chars
+        device.save()
+
+        return {'id': device.id} 
 
     def put(self, user, token_info):
         print(self.put.__qualname__)

@@ -4,6 +4,7 @@ import jwt
 import hashlib
 from email.message import EmailMessage
 from smtplib import SMTP_SSL
+from flask import abort
 
 import dev_settings as settings
 from models import (
@@ -19,8 +20,7 @@ def decode_token(token, secret=settings.JWT_KEY):
     return jwt.decode(token, secret, algorithms=['HS256'])
 
 def jwt_auth(token):
-    # TODO Что если токен просрочен или не валидный?
-    # или пользователь токена удален
+    # TODO Что если или пользователь токена удален
     try:
         token_info = decode_token(token)
     except jwt.exceptions.InvalidTokenError:
