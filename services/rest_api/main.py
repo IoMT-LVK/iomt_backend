@@ -33,6 +33,11 @@ flask_app.config.from_envvar('FLASK_SETTINGS', silent=True)
 settings.init_app(flask_app)
 
 db_wrapper.init_app(flask_app)
+@flask_app.teardown_request
+def teardown_request(r):
+  if not db_wrapper.database.is_closed():
+      db_wrapper.database.close()
+
 db_wrapper.database.create_tables([
     User, 
     Operator,
