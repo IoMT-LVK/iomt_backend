@@ -10,7 +10,7 @@ from .base import BaseModel
 from .characteristic import Characteristic
 
 
-class Device(BaseModel):
+class DeviceType(BaseModel):
     id = AutoField()
 
     name = CharField(

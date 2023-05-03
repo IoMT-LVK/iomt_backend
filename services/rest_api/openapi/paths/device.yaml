@@ -1,0 +1,72 @@
+device_by_id:
+  summary: "Concrete device registered by user"
+  description: "Just many-to-many mapping for users and device_types"
+
+  parameters: 
+  - $ref: "../common.yaml#/parameters/id"
+
+  get: 
+    summary: "Get info about users device"
+    description: "Retrieves full information about user device."
+    
+    tags:
+    - device
+    - single
+    responses:
+      "200":
+        description: "Device exists, correct and successfully returned."
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/device.yaml"
+              
+  put:
+    summary: "Edit user-device"
+    description: "Changes user-device."
+    
+    tags:
+    - device
+    - single
+    requestBody:
+      content:
+        application/json:
+          schema:
+            $ref: "../schemas/device.yaml"
+    responses:
+      "200":
+        description: "Successfully edited."
+
+  delete: 
+    summary: "Delete user-device"
+    description: "Deletes user-device if has permission to do that."
+
+    tags:
+    - device
+    - single
+    responses:
+      "200":
+        description: "Device configuration succesfully deleted. Empty response returned."
+
+device:
+  summary: "Operations on unspicified user-device"
+  description: "Operations on unspicified user-device (such as registering new device)."
+
+  post:
+    summary: "Register new user-device"
+    description: "Accept new user-device."
+
+    tags:
+    - device
+    - single
+    responses:
+      "200":
+        description: "Device succefully created."
+        content:
+          application/json:
+            schema:
+              $ref: "../common.yaml#/schemas/idObject"
+    requestBody:
+      content:
+        application/json:
+          schema:
+            $ref: "../schemas/device.yaml"

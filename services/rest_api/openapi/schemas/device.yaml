@@ -1,0 +1,18 @@
+type: object
+properties:
+  id:
+    type: integer
+    format: int32
+    readOnly: true
+  user_id:
+    type: integer
+    format: int32
+  device_type_id:
+    type: integer
+    format: int32
+  mac:
+    type: string
+    pattern: "^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$"
+required:
+- device_type_id
+- mac

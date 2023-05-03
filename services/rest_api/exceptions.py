@@ -30,4 +30,4 @@ def error_handler(exception):
     }, code
 
 def init_app(app):
-    app.add_error_handler(BaseError, BaseError.handler)
+    app.add_error_handler(BaseApiError, error_handler)

@@ -59,26 +59,10 @@ paths:
   /device_types:
     $ref: "paths/device_type.yaml#/device_types"
 
-# /device:
-#   get: {}
-#   post: {}
-#   put: {}
-#   delete: {}
-# /devices:
-#   get: {}
-#   post: {}
-#   put: {}
-#   delete: {}
-# /userdevice:
-#   get: {}
-#   post: {}
-#   put: {}
-#   delete: {}
-# /userdevices:
-#   get: {}
-#   post: {}
-#   put: {}
-#   delete: {}
+  /device/{id}:
+    $ref: "paths/device.yaml#/device_by_id"
+  /device:
+    $ref: "paths/device.yaml#/device"
 
 
 security:

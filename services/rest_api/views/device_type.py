@@ -1,9 +1,9 @@
 import re
 from connexion import NoContent
-from flask.views import MethodView
 
+from .base import BaseView
 from models import (
-    Device,
+    DeviceType,
     Operator,
 )
 
@@ -49,11 +49,9 @@ odlid = {
     }
 }
 
-class DeviceTypeView(MethodView):
+class DeviceTypeView(BaseView):
 
     def _get_or_create_characteristics(self, chars):
-        #char_obj = [Characteristic(**char) for 
-
         # Вернем ошибку если такой slug уже есть
         processed_chars = {key: None for key in chars.keys}
         same_slug = Characteristic.select().where(
@@ -89,18 +87,17 @@ class DeviceTypeView(MethodView):
         return same_slug, chars
 
     def post(self, user, token_info, body):
-        if type(user) is not Operator or not user.is_admin:
-            abort(403)
-
+        self._check_account_type(allow_admin=True)
+        chars = body.pop('characteristics')
         exists, insert = self._get_or_insert_characteristics(body['characteristics'])
 
-        device = Device.get_or_none(
-            (Device.name == body['name']) |
-            (Device.name_regex == body['name_regex'])
+        device = DeviceType.get_or_none(
+            (DeviceType.name == body['name']) |
+            (DeviceType.name_regex == body['name_regex'])
         )
 
         if device is not None:
-            abort(409, f"Device {device.name} exists")
+            abort(409, f"DeviceType {device.name} exists")
 
         chars = Characteristic.insert_many(chars).execute()
         device.characteristics = chars
@@ -121,7 +118,7 @@ class DeviceTypeView(MethodView):
         return hexoskin
 
 
-class DeviceTypesView(MethodView):
+class DeviceTypesView(BaseView):
     def get(self, user=None, token_info=None, name=None):
         if name is None:
             return [hexoskin, odlid]

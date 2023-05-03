@@ -20,6 +20,7 @@ def decode_token(token, secret=settings.JWT_KEY):
     return jwt.decode(token, secret, algorithms=['HS256'])
 
 def jwt_auth(token):
+    print(f"jwt_auth!!!")
     # TODO Что если или пользователь токена удален
     try:
         token_info = decode_token(token)
@@ -29,6 +30,7 @@ def jwt_auth(token):
         return None
     type, id = token_info['sub'].split('/', 1)
     if type == 'user':
+        token_info['sub'] = User(id=id, login='abc')#.get_by_id(id)
         token_info['sub'] = User.get_by_id(id)
     elif type == 'operator':
         token_info['sub'] = Operator.get_by_id(id)
@@ -38,6 +40,7 @@ def jwt_auth(token):
 
 
 def basic_user_auth(username, password):
+    print(f"basic_auth!!!")
     usr = User.get_or_none(login=username)
     if usr is None:
         return None
