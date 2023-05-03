@@ -67,7 +67,7 @@ class UserView(MethodView):
         return {'status': 'Confirmation link sent to email'} 
 
     def put(self, body, user, token_info, id=None):
-        if id is None and type(user) is None:
+        if id is None and type(user) is User:
             usr, id = user, user.id
         else:
             usr = get_object_or_404(User, (User.id == id))
