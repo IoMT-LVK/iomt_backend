@@ -17,10 +17,12 @@ properties:
     description: "Optional information about users weight."
     type: integer
     format: int32
+    nullable: true
   height:
     description: "Optional information about users height."
     type: integer
     format: int32
+    nullable: true
   email:
     type: string
     format: email
@@ -35,7 +37,9 @@ properties:
     description: "Optinonal users patronymic."
     type: string
     maxLength: 32
+    nullable: true
   born:
     description: "Format YYYY-MM-DD"
     type: string
     format: date
+    nullable: true
