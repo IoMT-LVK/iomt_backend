@@ -71,6 +71,11 @@ class UserView(MethodView):
             usr, id = user, user.id
         else:
             usr = get_object_or_404(User, (User.id == id))
+
+        # set_by_id не умеет в ManyToMany
+        if 'allowed' in body:
+            allowed = body.pop('allowed')
+            usr.allowed = allowed
         
         if (
             type(user) is User and id == user.id or
