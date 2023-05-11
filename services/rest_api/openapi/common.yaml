@@ -9,7 +9,7 @@ schemas:
       id:
         $ref: "#/schemas/id"
 
-  sensor:
+  characteristic:
     type: object
     properties:
       name:
@@ -19,7 +19,7 @@ schemas:
       service_uuid:
         type: string
         format: uuid
-      sensor_uuid:
+      characteristic_uuid:
         type: string
         format: uuid
 

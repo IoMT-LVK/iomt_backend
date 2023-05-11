@@ -37,6 +37,10 @@ class Characteristic(BaseModel):
         unique=False,
     )
 
+    _do_not_serialize = [
+        'id',
+    ]
+
     def serialize(self):
         srlz = super().serialize()
         slug = srlz.pop('slug')

@@ -24,17 +24,26 @@ class DeviceType(BaseModel):
         unique=True,
         max_length=128,
     )
-    type = SmallIntegerField(
+    type = CharField(  # TODO сделать кастомное поле Enum чтобы хранить числа и на строки
         null=False,
         unique=False,
     )
     characteristics = ManyToManyField(Characteristic, 'devices')
 
     def serialize(self):
-        srlz = super().serialize()
-        srlz['characteristics'] = {
-            slug: char_info 
-            for characteristic in self.characteristics 
-            for slug, char_info in sensor.serialize().items()
-        }
+        srlz = dict(
+            characteristics={
+                slug: char_info 
+                for characteristic in self.characteristics 
+                for slug, char_info in characteristic.serialize().items()
+            }
+        )
+        srlz.update(
+            general=dict(
+                name=self.name,
+                name_regex=self.name_regex,
+                type=self.type,
+            ),
+            id=self.id,
+        )
         return srlz

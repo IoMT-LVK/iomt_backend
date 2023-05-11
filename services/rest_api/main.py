@@ -56,6 +56,7 @@ db_wrapper.database.create_tables([
     User.allowed.get_through_model(),
     Device,
     DeviceType,
+    DeviceType.characteristics.get_through_model(),
     Characteristic,
 ])
 

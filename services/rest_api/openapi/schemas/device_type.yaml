@@ -14,14 +14,14 @@ properties:
       type:
         type: string
         enum:
-        - jacket
+        - vest
         - bracelet
     required:
     - name
     - name_regex
     - type
-  sensors:
+  characteristics:
     type: object
     minProperties: 1
     additionalProperties:
-      $ref: "../common.yaml#/schemas/sensor"
+      $ref: "../common.yaml#/schemas/characteristic"
