@@ -1,8 +1,11 @@
+from datetime import datetime
+import json
 import logging
 from paho.mqtt import subscribe
 from paho.mqtt.client import MQTTv5
 import requests
 import sys
+import clickhouse_connect as clickhouse
 
 API_USERNAME = "mqttUser"
 API_PASSWORD = "resUttqm"
@@ -16,9 +19,15 @@ MQTT_SUBSCRIBE_TOPICS = [
     'c/#',
 ]
 
+CH_HOST = 'clickhouse'
+CH_USER = API_USERNAME
+CH_PASSWORD = API_PASSWORD
+CH_DATABASE = 'IoMT_DB'
+CH_TABLENAME_FORMAT = '{user_id}/{slug}/{mac}'
+
 log = logging.getLogger(__name__)
 def configure_logger(logger):
-    logger.setLevel(logging.INFO)
+    logger.setLevel(logging.DEBUG)
     handler = logging.StreamHandler(sys.stdout)
     formatter = logging.Formatter('%(levelname)-5s %(name)-12s [%(asctime)s] %(message)s')
     logger.addHandler(handler)
@@ -37,8 +46,62 @@ def get_token(username, password):
 
 def process_msg(client, userdata, message):
     client.enable_logger(log)
+    # TODO здесь надо бы проверрить что пользователь не пишет в чужую таблицу
+    # c/1/F6:A1:DC:98:19:CF/heartRate : b'{"value":"67","timestamp":"2023-04-22T11:33:48.825011"}'
+    topic_info = message.topic.split('/', 3)
+    if len(topic_info) != 4:
+        log.error(f"Unknown topic format: {message.topic}")
+        return 
+    _, user_id, mac, ch_slug = topic_info
+    data = json.loads(message.payload)
+    try:
+        user_id = int(user_id)
+    except ValueError:
+        log.error(f"Invalid user_id: {user_id}")
+        return
+    try:
+        value = float(data['value'])
+    except ValueError:
+        log.error(f"Unknown value type: {value}")
+        return
+    ts = datetime.fromisoformat(data['timestamp'])
+
+    # если нет таблицы - создать таблицу
+    table = CH_TABLENAME_FORMAT.format(
+        user_id=user_id,
+        mac=mac,
+        slug=ch_slug,
+    )
+    clh_client = clickhouse.get_client(
+        host=CH_HOST,
+        user=CH_USER,
+        password=CH_PASSWORD,
+        database=CH_DATABASE,
+        client_name=CH_USER,
+    )
+    clh_client.command(
+        """
+        CREATE TABLE IF NOT EXISTS {table_name:Identifier} 
+        (timestamp DateTime64, value Float64)
+        Engine MergeTree
+        ORDER BY timestamp
+        """,
+        parameters=dict(table_name=table),
+    )
+
+    # записать данные
+    clh_client.insert(
+        table=f"`{table}`",
+        data=[
+            (ts, value),
+        ],
+        settings={'async_insert': True},
+    )
+
     log.info("%s : %s" % (message.topic, message.payload))
     log.info("%s" % client)
+    log.info("userdata=%s" % userdata)
+    log.debug(f"{user_id=}\t{mac=}\t{ch_slug=}\t{value=}\t{ts=}")
 
 if __name__ == "__main__":
     configure_logger(log)

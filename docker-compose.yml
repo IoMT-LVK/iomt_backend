@@ -27,6 +27,7 @@ volumes:
   prometheus:
   alertmanager:
   data:  # Database
+  db_metrics:  # ClickHouse datambase
   db:  # MySQL database
 
 # Networks - virtual networks used to communicate between containers
@@ -144,13 +145,20 @@ services:
     networks:
       - iomt
       - monitoring
+    depends_on:
+      - mongo
+      - rest_api
+      - clickhouse
 
   clickhouse:
-    image: yandex/clickhouse-server
-    ports:
-      - "8123:8123"
-      - "9000:9000"
-      - "9009:9009"
+    image: clickhouse/clickhouse-server
+    volumes:
+      - db_metrics:/var/lib/clickhouse
+    environment:
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: "1"
+      CLICKHOUSE_DB: "IoMT_DB"
+      CLICKHOUSE_USER: "mqttUser"
+      CLICKHOUSE_PASSWORD: "resUttqm"
     networks:
       - iomt
     
@@ -169,6 +177,10 @@ services:
       - BALANCE=leastconn
     ports:  # Exposes container ports
       - "1883:1883"
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144
     networks:  # defines connected networks
       - iomt
       - monitoring
