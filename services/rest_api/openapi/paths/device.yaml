@@ -70,3 +70,24 @@ device:
         application/json:
           schema:
             $ref: "../schemas/device.yaml"
+            
+devices:
+  summary: "Concrete devices registered by user"
+  description: "Just many-to-many mapping for users and device_types"
+
+  get: 
+    summary: "Get info about all users devices"
+    description: "Retrieves full information about user devices."
+    
+    tags:
+    - device
+    - multiple
+    responses:
+      "200":
+        description: "List of all registered devices"
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: "../schemas/device.yaml"

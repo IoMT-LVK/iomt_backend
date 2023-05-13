@@ -30,3 +30,9 @@ class Device(BaseModel):
         null=False,
         unique=False,
     )
+
+    def serialize(self):
+        srlz = super().serialize()
+        srlz['user_id'] = srlz.pop('user')
+        srlz['device_type_id'] = srlz.pop('device_type')
+        return srlz

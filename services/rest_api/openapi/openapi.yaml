@@ -63,6 +63,8 @@ paths:
     $ref: "paths/device.yaml#/device_by_id"
   /device:
     $ref: "paths/device.yaml#/device"
+  /devices:
+    $ref: "paths/device.yaml#/devices"
 
 
 security:
@@ -77,7 +79,7 @@ tags:
   description: "Endpoints for interaction with *Operator* objects."
 - name: "device_type"
   description: "Endpoints for interaction with known devices."
-- name: "userdevice"
+- name: "device"
   description: "Endpoints for interaction with users devices."
 - name: "single"
   description: "Endpoints for single object."
