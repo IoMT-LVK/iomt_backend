@@ -94,6 +94,7 @@ class DeviceTypesView(BaseView):
         if name is None:
             q = DeviceType.select()
         else:
+            # FIXME name == '' - ломает всё
             q = DeviceType.select().where(DeviceType.name.iregexp(name))
         return [
             i.serialize()

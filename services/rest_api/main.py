@@ -32,24 +32,9 @@ flask_app = app.app
 flask_app.config.from_object('dev_settings')
 flask_app.config.from_envvar('FLASK_SETTINGS', silent=True)
 settings.init_app(flask_app)
-
-@flask_app.before_request
-def tt():
-  flask_app.logger.debug(f"br {db_wrapper.database.is_closed()=}")
     
 db_wrapper.init_app(flask_app)
-@flask_app.before_request
-def t():
-  flask_app.logger.debug(f"br2 {db_wrapper.database.is_closed()=}")
-    
-import logging
-flask_app.logger.setLevel(logging.DEBUG)
-
-@flask_app.teardown_request
-def teardown_request(r):
-  if not db_wrapper.database.is_closed():
-      db_wrapper.database.close()
-
+db_wrapper.database.connect()
 db_wrapper.database.create_tables([
     User, 
     Operator,
@@ -59,6 +44,8 @@ db_wrapper.database.create_tables([
     DeviceType.characteristics.get_through_model(),
     Characteristic,
 ])
+if not db_wrapper.database.is_closed():
+    db_wrapper.database.close()
 
 if __name__ == "__main__":
     app.run()
