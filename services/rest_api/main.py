@@ -7,6 +7,9 @@ Contain `app` variable which you need pass to ASGI app (uvicorn)
 
 from connexion import App
 from connexion.resolver import MethodViewResolver
+import peewee
+import logging
+import time
 
 from exceptions import (
     BaseApiError,
@@ -32,9 +35,20 @@ flask_app = app.app
 flask_app.config.from_object('dev_settings')
 flask_app.config.from_envvar('FLASK_SETTINGS', silent=True)
 settings.init_app(flask_app)
+
+log = logging.getLogger(__name__)
     
 db_wrapper.init_app(flask_app)
-db_wrapper.database.connect()
+@flask_app.before_request
+def connect_db():
+    while db_wrapper.database.is_closed():
+        try:
+            db_wrapper.database.connect()
+        except peewee.OperationalError:
+            log.error("Can't connect to db")
+            time.sleep(1)
+
+connect_db()
 db_wrapper.database.create_tables([
     User, 
     Operator,

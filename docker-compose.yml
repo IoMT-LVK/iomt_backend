@@ -93,7 +93,6 @@ services:
 
   mongo:
     image: mongo:latest
-    restart: always
     volumes:
       - data:/data/db
     networks:
@@ -146,7 +145,6 @@ services:
       - iomt
       - monitoring
     depends_on:
-      - mongo
       - rest_api
       - clickhouse
 
