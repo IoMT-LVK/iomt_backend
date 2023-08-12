@@ -7,6 +7,8 @@ import requests
 import sys
 import clickhouse_connect as clickhouse
 
+API_ADMIN_LOGIN = 'root'
+API_ADMIN_PASSWORD = 'toor'
 API_USERNAME = "mqttUser"
 API_PASSWORD = "resUttqm"
 API_BASE = "http://nginx/api/v1"
@@ -34,9 +36,36 @@ def configure_logger(logger):
     handler.setFormatter(formatter)
 
 
+def register_operator(admin_username, admin_password,
+                      login, password):
+    auth = requests.auth.HTTPBasicAuth(admin_username, admin_password)
+    r = requests.post(API_BASE + "/auth/operator", auth=auth)
+    if not r.ok:
+        log.error(f"Unable to get JWT token for administrator. Status: {r.status_code} message: \"{r.text}\"")
+        exit(1)
+    token = r.json()['token']
+    del r
+    r = requests.post(
+        API_BASE + "/operator", 
+        headers={'Authorization': f'Bearer {token}', 'Content-Type': 'application/json'},
+        data=json.dumps(dict(
+            login=login,
+            password=password,
+        )),
+    )
+    del token
+    if r.ok:
+        log.debug("Operator registered")
+    elif r.status_code == 409:
+        log.debug("Operator exist")
+    else:
+        log.error(f"Can't create operator. Status {r.status_code} message: \"{r.text}\"")
+        exit(1)
+
+
 def get_token(username, password):
     auth = requests.auth.HTTPBasicAuth(username, password)
-    r = requests.post(API_BASE + "/auth/user", auth=auth)
+    r = requests.post(API_BASE + "/auth/operator", auth=auth)
     if not r.ok:
         log.error(f"Unable to get JWT token. Status: {r.status_code} message: \"{r.text}\"")
         exit(1)
@@ -105,6 +134,12 @@ def process_msg(client, userdata, message):
 
 if __name__ == "__main__":
     configure_logger(log)
+    register_operator(
+        admin_username=API_ADMIN_LOGIN,
+        admin_password=API_ADMIN_PASSWORD,
+        login=API_USERNAME, 
+        password=API_PASSWORD,
+    )
     while True:
         token = get_token(API_USERNAME, API_PASSWORD)
         # TODO что если токен протух

@@ -1,5 +1,10 @@
 from connexion import NoContent
 from flask.views import MethodView
+from flask import (
+    abort,
+    request,
+)
+import logging
 from time import time
 from datetime import datetime
 
@@ -10,6 +15,7 @@ from models import (
     Operator,
 )
 
+
 class AuthView(MethodView):
 
     def post(self, user, token_info, body):
@@ -18,12 +24,13 @@ class AuthView(MethodView):
         # что токены выпущенные для удаленного пользователя с id=n
         # будут валидны при переиспользовании id для нового поьзователя
         # по идее такого переиспользования не должно быть, но указать на это стоит
-        if type(user) is User:
+        if type(user) is User and 'user' in request.path:
             uri = f'user/{user.id}'
         elif type(user) is Operator:
+            # Отсутствие тут проверки operator в path это огромный костыль для работы mosquitto
             uri = f'operator/{user.id}'
         else:
-            raise ValueError()
+            abort(403)
         token = encode_token(
             sub=uri,
             iss=settings.SERVICE_NAME,

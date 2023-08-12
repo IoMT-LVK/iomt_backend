@@ -42,7 +42,6 @@ def jwt_auth(token):
         return None
     type, id = token_info['sub'].split('/', 1)
     if type == 'user':
-        token_info['sub'] = User(id=id, login='abc')#.get_by_id(id)
         token_info['sub'] = User.get_by_id(id)
     elif type == 'operator':
         token_info['sub'] = Operator.get_by_id(id)

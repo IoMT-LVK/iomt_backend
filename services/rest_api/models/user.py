@@ -1,3 +1,4 @@
+from flask import Response
 from peewee import (
     AutoField,
     CharField,
@@ -39,4 +40,6 @@ class User(BaseModel):
     def serialize(self):
         srlz = super().serialize()
         srlz['allowed'] = [op.id for op in self.allowed]
-        return srlz
+        # без явного указания content type connexion не может 
+        # определить тип ответа, ошибка или json
+        return srlz, 200, {'Content-Type': 'application/json'}

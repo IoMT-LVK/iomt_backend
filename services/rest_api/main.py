@@ -24,6 +24,7 @@ from models import (
     Device,
     DeviceType,
 )
+from utils import hash_password
 import dev_settings as settings
     
 app = App(__name__, specification_dir='openapi/')
@@ -37,6 +38,8 @@ flask_app.config.from_envvar('FLASK_SETTINGS', silent=True)
 settings.init_app(flask_app)
 
 log = logging.getLogger(__name__)
+log.addHandler(logging.StreamHandler())
+log.setLevel(logging.DEBUG)
 peewee_logger = logging.getLogger('peewee')
 peewee_logger.addHandler(logging.StreamHandler())
 peewee_logger.setLevel(logging.DEBUG)
@@ -59,6 +62,18 @@ db.create_tables([
     DeviceType.characteristics.get_through_model(),
     Characteristic,
 ])
+passw_hash, salt = hash_password(settings.ROOT_OP_PASSWORD)
+try:
+    Operator.create(
+        login=settings.ROOT_OP_LOGIN,
+        password_hash=passw_hash,
+        salt=salt,
+        is_admin=True,
+    )
+    log.debug("Root operator created")
+except peewee.IntegrityError:
+    log.debug("Root operator exist")
+
 if not db.is_closed():
     db.close()
 

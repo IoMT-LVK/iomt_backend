@@ -20,6 +20,9 @@ PASSWORD_HASH_COST = 8
 PASSWORD_HASH_BLOCK_SIZE = 512
 PASSWORD_HASH_PARALLEL = 4
 
+ROOT_OP_LOGIN = 'root'
+ROOT_OP_PASSWORD = 'toor'
+
 def init_app(app):
     globals().update(app.config)
 
