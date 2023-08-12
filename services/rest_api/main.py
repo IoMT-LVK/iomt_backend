@@ -53,6 +53,19 @@ def db_disconnect(exc):
     if not db.is_closed():
         db.close()
     
+try_num = 0
+while try_num < settings.DB_CONNECTION_RETRY_COUNT:
+    try:
+        db.connect()
+        break
+    except peewee.OperationalError:
+        try_num += 1
+        log.warning(f"Can't connect to db. Retry number {try_num}. Sleep for {2**try_num} seconds.")
+        time.sleep(2**try_num)
+else:
+    log.error("Can't connect to database")
+    exit(1)
+
 db.create_tables([
     User, 
     Operator,

@@ -1,6 +1,7 @@
 from datetime import datetime
 import json
 import logging
+import time
 from paho.mqtt import subscribe
 from paho.mqtt.client import MQTTv5
 import requests
@@ -27,6 +28,9 @@ CH_PASSWORD = API_PASSWORD
 CH_DATABASE = 'IoMT_DB'
 CH_TABLENAME_FORMAT = '{user_id}/{slug}/{mac}'
 
+RETRY_COUNT = 9
+RETRYBLE = {502}
+
 log = logging.getLogger(__name__)
 def configure_logger(logger):
     logger.setLevel(logging.DEBUG)
@@ -35,17 +39,30 @@ def configure_logger(logger):
     logger.addHandler(handler)
     handler.setFormatter(formatter)
 
+def request_with_retries(*args, **kwargs):
+    try_num = 0
+    while try_num < RETRY_COUNT:
+        r = requests.post(*args, **kwargs)
+        if r.status_code in RETRYBLE:
+            try_num += 1
+            log.warning(f"Request failed. Retry number {try_num}. Sleep for {2**try_num} seconds.")
+            time.sleep(2**try_num)
+        else:
+            break
+    else:
+        log.error("Request failed permanently. Give up.")
+    return r
 
 def register_operator(admin_username, admin_password,
                       login, password):
     auth = requests.auth.HTTPBasicAuth(admin_username, admin_password)
-    r = requests.post(API_BASE + "/auth/operator", auth=auth)
+    r = request_with_retries(API_BASE + "/auth/operator", auth=auth)
     if not r.ok:
         log.error(f"Unable to get JWT token for administrator. Status: {r.status_code} message: \"{r.text}\"")
         exit(1)
     token = r.json()['token']
     del r
-    r = requests.post(
+    r = request_with_retries(
         API_BASE + "/operator", 
         headers={'Authorization': f'Bearer {token}', 'Content-Type': 'application/json'},
         data=json.dumps(dict(
@@ -65,7 +82,7 @@ def register_operator(admin_username, admin_password,
 
 def get_token(username, password):
     auth = requests.auth.HTTPBasicAuth(username, password)
-    r = requests.post(API_BASE + "/auth/operator", auth=auth)
+    r = request_with_retries(API_BASE + "/auth/operator", auth=auth)
     if not r.ok:
         log.error(f"Unable to get JWT token. Status: {r.status_code} message: \"{r.text}\"")
         exit(1)

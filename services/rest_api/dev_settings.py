@@ -23,6 +23,8 @@ PASSWORD_HASH_PARALLEL = 4
 ROOT_OP_LOGIN = 'root'
 ROOT_OP_PASSWORD = 'toor'
 
+DB_CONNECTION_RETRY_COUNT = 9
+
 def init_app(app):
     globals().update(app.config)
 
