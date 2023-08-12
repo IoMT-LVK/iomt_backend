@@ -32,7 +32,6 @@ class UserView(MethodView):
     def _send_reg_email(self, email, retpath, token):
         link = retpath + f"?token={token}"
         try:
-            raise SMTPException
             send_email(
                 subject="Commit registration on IoMT",
                 text=f"Commit your registration on IoMT service, by clicking on link: {link}",

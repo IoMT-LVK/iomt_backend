@@ -16,7 +16,7 @@ from exceptions import (
     error_handler,
 )
 from exceptions import init_app as exceptions_init_app
-from models.base import db_wrapper
+from models.base import db
 from models.characteristic import Characteristic
 from models import (
     User,
@@ -37,19 +37,20 @@ flask_app.config.from_envvar('FLASK_SETTINGS', silent=True)
 settings.init_app(flask_app)
 
 log = logging.getLogger(__name__)
-    
-db_wrapper.init_app(flask_app)
-@flask_app.before_request
-def connect_db():
-    while db_wrapper.database.is_closed():
-        try:
-            db_wrapper.database.connect()
-        except peewee.OperationalError:
-            log.error("Can't connect to db")
-            time.sleep(1)
+peewee_logger = logging.getLogger('peewee')
+peewee_logger.addHandler(logging.StreamHandler())
+peewee_logger.setLevel(logging.DEBUG)
 
-connect_db()
-db_wrapper.database.create_tables([
+@flask_app.before_request
+def db_connect():
+    db.connect(reuse_if_open=True)
+
+@flask_app.teardown_request
+def db_disconnect(exc):
+    if not db.is_closed():
+        db.close()
+    
+db.create_tables([
     User, 
     Operator,
     User.allowed.get_through_model(),
@@ -58,8 +59,8 @@ db_wrapper.database.create_tables([
     DeviceType.characteristics.get_through_model(),
     Characteristic,
 ])
-if not db_wrapper.database.is_closed():
-    db_wrapper.database.close()
+if not db.is_closed():
+    db.close()
 
 if __name__ == "__main__":
     app.run()

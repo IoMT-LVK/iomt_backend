@@ -1,10 +1,10 @@
 FROM iegomez/mosquitto-go-auth:latest
 
-RUN apt update
+RUN apt update --allow-releaseinfo-change
 RUN apt install -y python3-pip
-RUN pip3 install supervisor
+RUN pip3 install supervisor --break-system-packages
 COPY client/requirements.txt /tmp/requirements.txt
-RUN pip3 install -r /tmp/requirements.txt
+RUN pip3 install -r /tmp/requirements.txt --break-system-packages
 RUN rm /tmp/requirements.txt
 
 # Configure supervisor

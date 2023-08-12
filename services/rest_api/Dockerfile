@@ -1,6 +1,6 @@
 FROM python:slim
 
-RUN apt update && apt install -y build-essential python3-dev default-libmysqlclient-dev
+RUN apt update && apt install -y build-essential python3-dev default-libmysqlclient-dev pkg-config
 COPY requirements.txt /tmp/requirements.txt
 RUN pip install -r /tmp/requirements.txt
 

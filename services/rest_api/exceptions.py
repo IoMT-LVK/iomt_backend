@@ -8,6 +8,9 @@ class BaseApiError(Exception):
     detail: str
     type: str  # absolute URI to description of problem
 
+    def problem(self):
+        return {}
+
 class CantSendEmailError(BaseApiError):
     """Server cant send email for some reason"""
     code =  424
@@ -17,7 +20,6 @@ class CantSendEmailError(BaseApiError):
 
 def error_handler(exception):
     return exception.problem()
-    exc
     if type(exception) is LoginExistsError:
         title = "User login should be unique"
         code = 409

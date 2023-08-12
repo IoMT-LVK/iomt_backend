@@ -5,11 +5,13 @@ import hashlib
 from email.message import EmailMessage
 from smtplib import SMTP_SSL
 from flask import abort
+from functools import wraps
 
 import dev_settings as settings
 from models import (
     User,
     Operator,
+    db,
 )
 
 
@@ -19,8 +21,18 @@ def encode_token(data={}, secret=settings.JWT_KEY, **extra):
 def decode_token(token, secret=settings.JWT_KEY):
     return jwt.decode(token, secret, algorithms=['HS256'])
 
+def with_db_connection(f):
+    @wraps(f)
+    def _wrapper(*args, **kwargs):
+        db.connect(reuse_if_open=True)
+        t = f(*args, **kwargs)
+        if not db.is_closed():
+            db.close()
+        return t
+    return _wrapper
+
+@with_db_connection
 def jwt_auth(token):
-    print(f"jwt_auth!!!")
     # TODO Что если или пользователь токена удален
     try:
         token_info = decode_token(token)
@@ -38,9 +50,8 @@ def jwt_auth(token):
         raise ValueError()
     return token_info
 
-
-def basic_user_auth(username, password):
-    print(f"basic_auth!!!")
+@with_db_connection
+def basic_user_auth(username, password, required_scopes):
     usr = User.get_or_none(login=username)
     if usr is None:
         return None
@@ -49,6 +60,7 @@ def basic_user_auth(username, password):
         return {'sub': usr}
     return None
 
+@with_db_connection
 def basic_operator_auth(username, password):
     usr = Operator.get_or_none(login=username)
     if usr is None:
