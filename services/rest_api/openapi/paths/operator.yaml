@@ -1,0 +1,123 @@
+operator_by_id:
+  summary: "Operations on spicified operator"
+  description: "Operations on spicified operator."
+
+  parameters:
+  - $ref: "../common.yaml#/parameters/id"
+
+  get:
+    summary: "Get operator information"
+    description: "Retreive information about specified operator."
+
+    tags:
+    - operator
+    - single
+    responses:
+      "200":
+        description: "Operator found and returned."
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/operator.yaml"
+
+  put:
+    summary: "Edit operator"
+    description: "Changes operator information."
+
+    tags:
+    - operator
+    - single
+    requestBody:
+      description: "Fileds with new values."
+      content:
+        application/json:
+          schema:
+            $ref: "../schemas/operator.yaml"
+    responses:
+      "200":
+        description: "Successfully edited."
+
+  delete:
+    summary: "Delete specified operator"
+    description: "Deletes operator if has permission to do that."
+
+    tags:
+    - operator
+    - single
+    responses:
+      "200":
+        description: "Operator succesfully deleted. Empty response returned."
+
+operator:
+  summary: "Operations on unspicified operator"
+  description: "Opertions on user from auth token (or registration)."
+
+  post:
+    summary: "Create new operator"
+    description: "Simply creates new operator. Accessible only to admins."
+
+    tags:
+    - operator
+    - single
+    responses:
+      "201":
+        description: "Operator succefully created."
+        content:
+          application/json:
+            schema:
+              $ref: "../common.yaml#/schemas/idObject"
+
+    requestBody:
+      content:
+        application/json:
+          schema:
+            allOf:
+            - $ref: "../schemas/operator.yaml"
+            - type: object
+              required:
+              - login
+              - password
+
+  delete:
+    summary: "Delete operator from token"
+    description: "Deletes operator if has permission to do that."
+
+    tags:
+    - operator
+    - single
+    responses:
+      "204":
+        description: "Operator succesfully deleted. Empty response returned."
+    operationId: views.operator.OperatorView.delete
+
+  get:
+    summary: "Get operator information from token"
+    description: "Retreive information about specified operator."
+
+    tags:
+    - operator
+    - single
+    responses:
+      "200":
+        description: "Operator found and returned."
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/operator.yaml"
+
+  put:
+    summary: "Edit operator from token"
+    description: "Changes operator information."
+
+    tags:
+    - operator
+    - single
+    requestBody:
+      content:
+        application/json:
+          schema:
+            $ref: "../schemas/operator.yaml"
+    responses:
+      "200":
+        description: "Successfully edited."
+    operationId: views.operator.OperatorView.put

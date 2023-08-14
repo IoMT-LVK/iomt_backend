@@ -1,0 +1,61 @@
+auth_for_user:
+  summary: "Manage your user authentifiaction"
+
+  post:
+    summary: "Authentification procedure for user"
+
+    tags:
+    - authentification
+    - user
+    responses:
+      "200":
+        description: "You have been successfully authentificated"
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/auth.yaml#/jwt_token_object"
+    security: 
+    - basic_user: []
+    # jwt нужен в первую очередь для mosquitto
+    # дополнительно появляется возможность получать новый токен по старому
+    # с точки зрения безопасности это не очень хорошо, но пока ОКэй
+    - jwt: []
+    operationId: views.auth.AuthView.post_user
+
+auth_for_operator:
+  summary: "Manage your operator authentifiaction"
+
+  post:
+    summary: "Authentification procedure for operator"
+
+    tags:
+    - authentification
+    - operator
+    responses:
+      "200":
+        description: "You have been successfully authentificated"
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/auth.yaml#/jwt_token_object"
+    security: 
+    - basic_operator: []
+    # jwt нужен в первую очередь для mosquitto
+    # дополнительно появляется возможность получать новый токен по старому
+    # с точки зрения безопасности это не очень хорошо, но пока ОКэй
+    - jwt: []
+    operationId: views.auth.AuthView.post_operator
+
+auth:
+  get:
+    summary: "Get authentification and authorization information"
+    
+    tags:
+    - authentification
+    responses:
+      "200": 
+        description: "User found and returned."
+        content:
+          application/json: 
+            schema:
+              $ref: "../schemas/auth.yaml#token_info"

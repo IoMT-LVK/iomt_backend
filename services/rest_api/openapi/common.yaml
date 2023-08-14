@@ -1,0 +1,87 @@
+schemas:
+  id:
+    type: integer
+    format: int32
+    
+  idObject:
+    type: object
+    properties:
+      id:
+        $ref: "#/schemas/id"
+
+  characteristic:
+    type: object
+    properties:
+      name:
+        type: string
+        minLength: 4
+        maxLength: 32
+      service_uuid:
+        type: string
+        format: uuid
+      characteristic_uuid:
+        type: string
+        format: uuid
+
+  problem:
+    type: object
+    properties:
+      status:
+        type: integer
+      title:
+        type: string
+      detail:
+        type: string
+      type:
+        type: string
+      instance:
+        type: string
+
+parameters:
+  id:
+    name: "id"
+    in: path
+    required: true
+    schema:
+      $ref: "#/schemas/id"
+
+responses:
+  "403":
+    description: "You don't have the permission to access the requested resource"
+    content:
+      application/problem+json:
+        schema:
+          $ref: "#/schemas/problem"
+        example:
+          {
+            "type": "about:blank",
+            "title": "Forbidden",
+            "detail": "You don't have the permission to access the requested resource. It is either read-protected or not readable by the server.",
+            "status": 403
+          }
+  "404":
+    description: "The requested URL was not found on the server"
+    content:
+      application/problem+json:
+        schema:
+          $ref: "#/schemas/problem"
+        example:
+          {
+            "type": "about:blank",
+            "title": "Not Found",
+            "detail": "The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.",
+            "status": 404
+          }
+  "409":
+    description: "Login collision"
+    content:
+      application/problem+json:
+        schema:
+          $ref: "#/schemas/problem"
+        example:
+          {
+            "type": "about:blank",
+            "title": "Conflict",
+            "detail": "A conflict happened while processing the request. The resource might have been modified while the request was being processed.",
+            "status": 409
+          }

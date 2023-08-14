@@ -1,0 +1,14 @@
+jwt_token_object:
+  allOf:
+  - type: object
+    properties:
+      token:
+        type: string
+  - $ref: "#/token_info"
+
+token_info:
+  type: object
+  properties:
+    expires:
+      type: string
+      format: date-time

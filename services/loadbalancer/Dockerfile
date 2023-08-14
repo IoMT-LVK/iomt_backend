@@ -12,7 +12,3 @@ COPY haproxy.cfg /usr/local/etc/haproxy/haproxy.cfg
 
 # Define default command
 #CMD ["bash", "/haproxy-start"]
-
-# Expose ports
-EXPOSE 1344
-EXPOSE 9101

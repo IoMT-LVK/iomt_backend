@@ -1,0 +1,217 @@
+user_by_id:
+  summary: "Operations on spicified user"
+  description: "Operations on spicified user."
+
+  parameters: 
+  - $ref: "../common.yaml#/parameters/id"
+
+  get: 
+    summary: "Get info about user"
+    description: "Retrieves full information about user."
+    
+    tags:
+    - user
+    - single
+    responses:
+      "200":
+        description: "User exists, correct and successfully returned."
+        content:
+          application/json:
+            schema:
+              allOf:
+              - $ref: "../schemas/user.yaml"
+              - type: object
+                properties:
+                  allowed:
+                    description: "List of operators allowed to read users information."
+                    type: array
+                    items:
+                      $ref: "../common.yaml#/schemas/id"
+      "404":
+        $ref: "../common.yaml#/responses/404"
+      "403":
+        $ref: "../common.yaml#/responses/403"
+              
+  put:
+    summary: "Edit user"
+    description: "Changes users information and commit registration."
+    
+    tags:
+    - user
+    - single
+    requestBody:
+      content:
+        application/json:
+          schema:
+            allOf:
+            - $ref: "../schemas/user.yaml"
+            - type: object
+              properties:
+                allowed:
+                  description: "List of operators allowed to read users information."
+                  type: array
+                  items:
+                    $ref: "../common.yaml#/schemas/id"
+    responses:
+      "200":
+        description: "Successfully edited."
+      "403":
+        $ref: "../common.yaml#/responses/403"
+      "404":
+        $ref: "../common.yaml#/responses/404"
+
+  delete: 
+    summary: "Delete specified user"
+    description: "Deletes user if has permission to do that."
+
+    tags:
+    - user
+    - single
+    responses:
+      "204":
+        description: "User succesfully deleted. Empty response returned."
+      "403":
+        $ref: "../common.yaml#/responses/403"
+      "404":
+        $ref: "../common.yaml#/responses/404"
+
+user:
+  summary: "Operations on unspicified user"
+  description: "Operations on unspicified user (such as creating)."
+
+  post:
+    summary: "Create new user"
+    description: |
+      Registration process consist of two steps.
+      1. Submit user data with retpath.
+         Server will format confirmation link with retpath base and send it on specified email.
+      1. User go to link from message on specified resource, front-back send POST query with singl field 'email_confirm_token'.
+
+      If registartion doesn't completed after one day user removed.
+    tags:
+    - user
+    - single
+    responses:
+      "200":
+        description: "User submited. Confirmation link sent to email."
+        content:
+          application/json:
+            example: {"status": "Confirmation link sent to email"}
+      "201":
+        description: "User succefully created."
+        content:
+          application/json:
+            schema:
+              $ref: "../common.yaml#/schemas/idObject"
+    requestBody:
+      content:
+        application/json:
+          examples:
+            submit:
+              summary: Submitting new registration after sending email
+              value:  {
+                    'login': 'hasbik',
+                    'password': 'U c4nt cяack m3',
+                    'email': 'hasbik@example.com',
+                    'name': 'Хасбула',
+                    'surname': 'Магомедов',
+                    'patronymic': 'Магомедович',
+                    'born': '2002-07-07',
+                    'weight': 19,
+                    'height': 95,
+                    'retpath': 'https://example.com/reg_user'
+                }
+            commit:
+              summary: Commiting new registration after sending email
+          schema:
+            oneOf:
+            - type: object
+              properties:
+                email_confirm_token:
+                  type: string
+              required:
+              - email_confirm_token
+            - allOf:
+              - $ref: "../schemas/user.yaml"
+              - type: object
+                properties:
+                  retpath:
+                    type: string
+                required:
+                - name
+                - surname
+                - email
+                - login
+                - password
+                - retpath
+    security: []
+
+  get: 
+    summary: "Get info about user from token"
+    description: "Retrieves full information about user.\n\n*Method allowed only for accounts with type 'User' (not 'Operator')*"
+    
+    tags:
+    - user
+    - single
+    responses:
+      "200":
+        description: "User exists, correct and successfully returned."
+        content:
+          application/json:
+            schema:
+              allOf:
+              - $ref: "../schemas/user.yaml"
+              - type: object
+                properties:
+                  allowed:
+                    description: "List of operators allowed to read users information."
+                    type: array
+                    items:
+                      $ref: "../common.yaml#/schemas/id"
+
+  delete: 
+    summary: "Delete user from token"
+    description: "Deletes user if has permission to do that."
+
+    tags:
+    - user
+    - single
+    responses:
+      "204":
+        description: "User succesfully deleted. Empty response returned."
+      "403":
+        $ref: "../common.yaml#/responses/403"
+      "404":
+        $ref: "../common.yaml#/responses/404"
+
+    # Без этой строки почему то не заводилось, хотя с GET всё работает
+    operationId: views.user.UserView.delete
+
+  put:
+    summary: "Edit user from token"
+    description: "Changes users information and commit registration."
+    
+    tags:
+    - user
+    - single
+    requestBody:
+      content:
+        application/json:
+          schema:
+            allOf:
+            - $ref: "../schemas/user.yaml"
+            - type: object
+              properties:
+                allowed:
+                  description: "List of operators allowed to read users information."
+                  type: array
+                  items:
+                    $ref: "../common.yaml#/schemas/id"
+    responses:
+      "200":
+        description: "Successfully edited."
+      "403":
+        $ref: "../common.yaml#/responses/403"
+      "404":
+        $ref: "../common.yaml#/responses/404"
+    operationId: views.user.UserView.put

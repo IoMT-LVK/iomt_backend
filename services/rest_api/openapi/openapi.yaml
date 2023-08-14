@@ -1,0 +1,87 @@
+# OpenAPI Specification: https://spec.openapis.org/oas/v3.0.0
+openapi: 3.0.0  # connexion currently doesn't support version 3.1
+
+info:
+  title: "IoMT REST API"
+  description: "Interface for interaction with IoMT web application."
+  contact: 
+    name: "The Computer Systems Laboratory"
+    url: "https://lvk.cs.msu.ru"
+    email: "info@lvk.cs.msu.ru"
+  version: 1.0.0
+
+servers:
+  - url: "https://iomt.lvk.cs.msu.ru/api/v1"
+    description: "Server hosted in CMC MSU laboratory."
+
+components:
+  securitySchemes:
+    jwt:
+      type: http
+      description: "JWT security scheme authorize users by JSON Web Token."
+      scheme: bearer
+      bearerFormat: JWT
+      x-bearerInfoFunc: utils.jwt_auth
+    basic_user:
+      type: http
+      description: "Auth for generating JWT tokens for user"
+      scheme: basic
+      x-basicInfoFunc: utils.basic_user_auth
+    basic_operator:
+      type: http
+      description: "Auth for generating JWT tokens for operator"
+      scheme: basic
+      x-basicInfoFunc: utils.basic_operator_auth
+      
+
+paths:
+  /auth:
+    $ref: "paths/auth.yaml#/auth"
+  /auth/user:
+    $ref: "paths/auth.yaml#/auth_for_user"
+  /auth/operator:
+    $ref: "paths/auth.yaml#/auth_for_operator"
+
+  /user/{id}:
+    $ref: "paths/user.yaml#/user_by_id"
+  /user:
+    $ref: "paths/user.yaml#/user"
+
+  /operator/{id}:
+    $ref: "paths/operator.yaml#/operator_by_id"
+  /operator:
+    $ref: "paths/operator.yaml#/operator"
+
+  /device_type/{id}:
+    $ref: "paths/device_type.yaml#/device_type_by_id"
+  /device_type:
+    $ref: "paths/device_type.yaml#/device_type"
+  /device_types:
+    $ref: "paths/device_type.yaml#/device_types"
+
+  /device/{id}:
+    $ref: "paths/device.yaml#/device_by_id"
+  /device:
+    $ref: "paths/device.yaml#/device"
+  /devices:
+    $ref: "paths/device.yaml#/devices"
+
+
+security:
+- jwt: []
+
+tags:
+- name: "authentification"
+  description: "Endpoints for managing your authentification"
+- name: "user"
+  description: "Endpoints for interaction with *User* objects."
+- name: "operator"
+  description: "Endpoints for interaction with *Operator* objects."
+- name: "device_type"
+  description: "Endpoints for interaction with known devices."
+- name: "device"
+  description: "Endpoints for interaction with users devices."
+- name: "single"
+  description: "Endpoints for single object."
+- name: "multiple"
+  description: "Endpoints for multiple objects."
