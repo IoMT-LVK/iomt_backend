@@ -34,8 +34,6 @@ app.add_error_handler(BaseApiError, error_handler)
 
 flask_app = app.app
 flask_app.config.from_object('dev_settings')
-flask_app.config.from_envvar('FLASK_SETTINGS', silent=True)
-settings.init_app(flask_app)
 
 log = logging.getLogger(__name__)
 log.addHandler(logging.StreamHandler())

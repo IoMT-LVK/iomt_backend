@@ -1,10 +1,9 @@
+import secrets
+
 SERVICE_NAME = 'IoMT_REST'
 
 JWT_KEY = '<same_as JWT_KEY file>'
 JWT_TOKEN_LIFETIME = 3 * 30 * 24 * 60 * 60  # 3 monts
-
-DATABASE = 'mysql://rest:TODOCHANGE@mysql:3306/IoMT_DB'
-FLASKDB_EXCLUDED_ROUTES = tuple()
 
 MAIL_SERVER = 'smtp.gmail.com'
 MAIL_ADDRESS = 'iomt.confirmation@gmail.com'
@@ -23,9 +22,9 @@ PASSWORD_HASH_PARALLEL = 4
 ROOT_OP_LOGIN = 'root'
 ROOT_OP_PASSWORD = 'toor'
 
-DB_CONNECTION_RETRY_COUNT = 9
-
-def init_app(app):
-    globals().update(app.config)
-
-#settings = namedtuple('Settings', flask_app.config)(**flask_app.config)
+DB_NAME = 'IoMT_DB'
+DB_HOST = 'mysql'
+DB_USER = 'rest'
+DB_STALE_TIMEOUT = 300
+DB_CONNECTION_RETRY_COUNT = 5
+DB_PASSWORD = secrets.DB_PASSWORD
