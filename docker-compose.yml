@@ -59,6 +59,14 @@ configs:
 secrets:
   db_password:
     file: secrets/db_password.txt
+  mail_password:
+    file: secrets/mail_password.txt
+  root_operator_password:
+    file: secrets/root_operator_password.txt
+  email_jwt_key:
+    file: secrets/email_jwt_key.txt
+  jwt_key:
+    file: secrets/jwt_key.txt
 
 # Services - main element in compose file enumerating all existing services
 services:
@@ -72,6 +80,10 @@ services:
     depends_on:
       - mysql
     secrets:
+      - mail_password
+      - root_operator_password
+      - email_jwt_key
+      - jwt_key
       - db_password
 
   web_app:

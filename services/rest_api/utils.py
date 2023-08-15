@@ -7,7 +7,7 @@ from smtplib import SMTP_SSL
 from flask import abort
 from functools import wraps
 
-import dev_settings as settings
+import settings
 from models import (
     User,
     Operator,

@@ -2,7 +2,7 @@ from peewee import Model
 from playhouse.flask_utils import FlaskDB
 from playhouse.pool import PooledMySQLDatabase
 
-import dev_settings as settings
+import settings
 
 db = PooledMySQLDatabase(
     database=settings.DB_NAME,

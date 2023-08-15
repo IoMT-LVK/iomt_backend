@@ -1,5 +1,8 @@
 from pathlib import Path
+import logging
 
+
+log = logging.getLogger(__name__)
 
 def read_secret(secret_name, default=''):
     file = Path('/run/secrets') / secret_name
@@ -10,3 +13,7 @@ def read_secret(secret_name, default=''):
         return f.read().strip()
 
 DB_PASSWORD = read_secret('db_password')
+JWT_KEY = read_secret('jwt_key')
+EMAIL_JWT_KEY = read_secret('email_jwt_key')
+ROOT_OP_PASSWORD = read_secret('root_operator_password')
+MAIL_PASSWORD = read_secret('mail_password')

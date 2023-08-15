@@ -2,14 +2,14 @@ import secrets
 
 SERVICE_NAME = 'IoMT_REST'
 
-JWT_KEY = '<same_as JWT_KEY file>'
+JWT_KEY = secrets.JWT_KEY
 JWT_TOKEN_LIFETIME = 3 * 30 * 24 * 60 * 60  # 3 monts
 
 MAIL_SERVER = 'smtp.gmail.com'
 MAIL_ADDRESS = 'iomt.confirmation@gmail.com'
-MAIL_PASSWORD = 'feyplseixdsorljy'
+MAIL_PASSWORD = secrets.MAIL_PASSWORD # 'feyplseixdsorljy'
 MAIL_PORT = 465
-EMAIL_JWT_KEY = '<replace_this>'
+EMAIL_JWT_KEY = secrets.EMAIL_JWT_KEY
 EMAIL_LINK_LIFETIME = 24 * 60 * 60
 
 PASSWORD_MAX_LEN = 64
@@ -20,7 +20,7 @@ PASSWORD_HASH_BLOCK_SIZE = 512
 PASSWORD_HASH_PARALLEL = 4
 
 ROOT_OP_LOGIN = 'root'
-ROOT_OP_PASSWORD = 'toor'
+ROOT_OP_PASSWORD = secrets.ROOT_OP_PASSWORD
 
 DB_NAME = 'IoMT_DB'
 DB_HOST = 'mysql'
