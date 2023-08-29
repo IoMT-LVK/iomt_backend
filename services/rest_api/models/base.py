@@ -2,12 +2,14 @@ from peewee import Model
 from playhouse.flask_utils import FlaskDB
 from playhouse.pool import PooledMySQLDatabase
 
+import settings
+
 db = PooledMySQLDatabase(
-    'IoMT_DB',  # TODO вынести в настройки
-    stale_timeout=50,
-    host='mysql',
-    user='rest',
-    password='TODOCHANGE',
+    database=settings.DB_NAME,
+    host=settings.DB_HOST,
+    user=settings.DB_USER,
+    password=settings.DB_PASSWORD,
+    stale_timeout=settings.DB_STALE_TIMEOUT,
 )
 
 class BaseModel(Model):

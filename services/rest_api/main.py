@@ -25,7 +25,7 @@ from models import (
     DeviceType,
 )
 from utils import hash_password
-import dev_settings as settings
+import settings
     
 app = App(__name__, specification_dir='openapi/')
 app.add_api('openapi.yaml', resolver=MethodViewResolver('views'))
@@ -33,9 +33,7 @@ exceptions_init_app(app)
 app.add_error_handler(BaseApiError, error_handler)
 
 flask_app = app.app
-flask_app.config.from_object('dev_settings')
-flask_app.config.from_envvar('FLASK_SETTINGS', silent=True)
-settings.init_app(flask_app)
+flask_app.config.from_object('settings')
 
 log = logging.getLogger(__name__)
 log.addHandler(logging.StreamHandler())

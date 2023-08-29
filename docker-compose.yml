@@ -53,6 +53,21 @@ configs:
   nginx:
     file: ./services/nginx/default.conf
 
+# Secrets - secrets =)
+# Don't forget to add necessary secrets to secrets/README.md
+# https://docs.docker.com/compose/compose-file/09-secrets/
+secrets:
+  db_password:
+    file: secrets/db_password.txt
+  mail_password:
+    file: secrets/mail_password.txt
+  root_operator_password:
+    file: secrets/root_operator_password.txt
+  email_jwt_key:
+    file: secrets/email_jwt_key.txt
+  jwt_key:
+    file: secrets/jwt_key.txt
+
 # Services - main element in compose file enumerating all existing services
 services:
 
@@ -64,8 +79,12 @@ services:
       - iomt
     depends_on:
       - mysql
-    environment:
-      FLASK_SETTINGS: "/run/secrets/flask_settings.py"
+    secrets:
+      - mail_password
+      - root_operator_password
+      - email_jwt_key
+      - jwt_key
+      - db_password
 
   web_app:
     image: web_app  # swarm ignores build and restart options and looks for image option in each container
@@ -109,10 +128,12 @@ services:
       - '--character-set-server=utf8mb4'
       - '--collation-server=utf8mb4_unicode_ci'
     environment:
-      MYSQL_ROOT_PASSWORD: "TODOCHANGE"
+      MYSQL_RANDOM_ROOT_PASSWORD: yes
       MYSQL_DATABASE: "IoMT_DB"
       MYSQL_USER: "rest"
-      MYSQL_PASSWORD: "TODOCHANGE"
+      MYSQL_PASSWORD_FILE: /run/secrets/db_password
+    secrets:
+      - db_password
 
   mosquitto:
     image: mosquitto  # Name of local built image

@@ -9,7 +9,7 @@ from time import time
 from datetime import datetime
 
 from utils import encode_token
-import dev_settings as settings
+import settings
 from models import (
     User,
     Operator,

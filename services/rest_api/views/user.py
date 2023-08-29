@@ -23,7 +23,7 @@ from utils import (
     hash_password,
 )
 
-import dev_settings as settings
+import settings
 
 log = logging.getLogger(__name__)
 
