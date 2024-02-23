@@ -1,4 +1,4 @@
-FROM python:slim
+FROM python:3.12.2-slim
 
 RUN apt update && apt install -y build-essential python3-dev default-libmysqlclient-dev pkg-config
 COPY requirements.txt /tmp/requirements.txt

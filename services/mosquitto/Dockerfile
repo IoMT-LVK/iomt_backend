@@ -1,4 +1,4 @@
-FROM iegomez/mosquitto-go-auth:latest
+FROM iegomez/mosquitto-go-auth:latest-mosquitto_2.0.15
 
 RUN apt update --allow-releaseinfo-change
 RUN apt install -y python3-pip

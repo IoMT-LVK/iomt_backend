@@ -1,5 +1,4 @@
---pre
-connexion[flask,swagger-ui,uvicorn]
-pyjwt
-peewee
-mysqlclient
+connexion[flask,swagger-ui,uvicorn]==3.0.2
+pyjwt==2.8.0
+peewee==3.17.1
+mysqlclient==2.2.4

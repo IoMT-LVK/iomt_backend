@@ -1,5 +1,5 @@
-paho-mqtt>=1.6.1
-clickhouse-driver>=0.2.4
-pyjwt>=2.3.0
-requests
-clickhouse-connect
+paho-mqtt==1.6.1
+clickhouse-driver==0.2.7
+pyjwt==2.3.0
+requests==2.31.0
+clickhouse-connect==0.7.0

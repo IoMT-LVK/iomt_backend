@@ -18,7 +18,7 @@ from models import (
 
 class AuthView(MethodView):
 
-    def post(self, user, token_info, body):
+    def post(self, user, token_info, body=None):
         expires = int(time()) + settings.JWT_TOKEN_LIFETIME
         # Такое форматирование чревато тем, 
         # что токены выпущенные для удаленного пользователя с id=n
