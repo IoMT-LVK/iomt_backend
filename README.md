@@ -16,7 +16,7 @@ All commands was tested on Linux (Ubuntu-18.04)
 1. [Install docker](https://docs.docker.com/engine/install/)
 1. Clone repository
    `git clone git@github.com:IoMT-LVK/iomt_backend.git`
-1. [Create secrets](/secrets/README.md)
+1. Create secrets
    You can do it manually: `export DB_PASSWORD=qwerty`
    or by .env file: `echo 'DB_PASSWORD=qwerty' > .env`
    List of required env vars available in `secrets` root module of [docker-compose.yaml](docker_compose.yaml).
