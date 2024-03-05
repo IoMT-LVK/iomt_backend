@@ -3,7 +3,8 @@ from flask import Flask, render_template, request, redirect, session, send_file,
 from forms import *
 from blueprints.api import get_clickhouse_data
 from flask_wtf.csrf import CSRFProtect
-from models import db, Users, Operators, Devices, Userdevices, Info
+from models import  Users, Operators, Devices, Userdevices, Info
+from models2 import User, Operator, Device, DeviceType
 from werkzeug.security import generate_password_hash
 from flask_login import current_user, login_user, login_required, logout_user, LoginManager
 import auth
@@ -13,6 +14,9 @@ import uuid
 import logging
 from flask_mail import Mail, Message
 from itsdangerous import URLSafeTimedSerializer, SignatureExpired
+from rest_api.utils import encode_token, decode_token, hash_password
+import rest_api.settings as settings
+from time import time
 
 
 app = Flask(__name__)
@@ -47,7 +51,6 @@ if not config_loaded:
     app.logger.warning("Default config was loaded. "
                        "Change FLASK_CONFIG value to absolute path of your config file for correct loading.")
 
-db.init_app(app)  # Init mongoengine
 manager = LoginManager(app)  # Init login manager
 csrf = CSRFProtect(app)  # Init CSRF in WTForms for excluding it in interaction with phone (well...)
 url_tokenizer = URLSafeTimedSerializer(app.config['SECRET_KEY'])  # Serializer for generating email confirmation tokens
@@ -65,10 +68,10 @@ def create_file(user_id, device_id, begin, end):
     res = get_clickhouse_data(query)
     file_name = name + '_' + str(random.randint(1, 1000000)) + '.csv'
 
-    d = Userdevices.objects(user_id=user_id).first()
+    d = Device.select().where(user_id=user_id)
     d_type = d.device_type
 
-    device = Devices.objects(device_type=d_type).first()
+    device = Device.objects(device_type=d_type).first()
     columns = device.columns.split(',')
 
     with open('files/' + file_name, 'w+') as out:
@@ -83,7 +86,8 @@ def create_file(user_id, device_id, begin, end):
 @manager.user_loader
 def load_user(user_id):
     """Configure user loader"""
-    return Operators.objects(pk=user_id).first()
+    req = Operator.select().where(id=user_id)
+    return conn.execute(req)
 
 
 @app.route('/auth/', methods=['POST'])
@@ -110,7 +114,7 @@ def login():
     """Login page"""
     form = LoginForm()
     if request.method == 'POST':
-        operator = Operators.objects(login=form.username.data).first()
+        operator = Operator.select().where(Operator.login==form.username.data)
         if operator and operator.password_valid(form.password.data):
             login_user(operator)
             return redirect(url_for('main'))
@@ -136,7 +140,7 @@ def get_data():
         devices = []
         session["user_id"] = user_id
 
-        for d in Userdevices.objects(user_id=user_id):
+        for d in Device.select().where(Device.user.id == user_id):
             devices.append((d.device_id, d.device_name))
 
         form2.device.choices = devices
@@ -171,7 +175,7 @@ def user_info():
     if request.method == 'GET':
         form = UserList()
         form.us_list.choices = [
-            (u.user_id, "{} {} {}".format(u.name, u.surname, u.patronymic))
+            ("{} {} {}".format(u.name, u.surname, u.patronymic))
             for u in Info.objects
             if current_user.id in u.allowed
         ]
@@ -195,53 +199,31 @@ def download_file(file):
 @csrf.exempt
 def new_user():
     data = request.get_json()
-    man_info = Info.objects(email=data['email']).first()
-    if man_info:
-        man_user = Users.objects(user_id=man_info.user_id).first()
-        if man_user.confirmed:
-            return {"error": "email"}, 200
-        else:
-            man_info.delete()
-            man_user.delete()
-    if Users.objects(login=data['login']).first():
+    resp = User.select().where(User.email==data['email'])
+    if resp:
+        app.logger.info(f"User {resp.login} with provided email already exists")
+    if User.select().where(User.login==data["login"]):
         return {"error": "login"}, 200
-    id = uuid.uuid4().hex
-    usr = Users()
-    usr.user_id = id
-    usr.login = data['login']
-    usr.password_hash = generate_password_hash(data['password'])
-    usr.confirmed = False
-    usr.save()
 
-    info = Info()
-    info.user_id = id
-    info.email = data['email']
-    info.name = data['name']
-    info.surname = data['surname']
-    info.patronymic = data['patronymic']
-    info.birth_date = data['birthdate']
-    info.phone = data['phone_number']
-    info.weight = 0
-    info.height = 0
-    info.save()
-
-    token = url_tokenizer.dumps(data['email'], salt='email-confirm')
+    token = encode_token(
+        data,
+        secret=settings.EMAIL_JWT_KEY, 
+        iss=settings.SERVICE_NAME,
+        exp=time() + settings.EMAIL_LINK_LIFETIME,
+        iat=time()
+    )
     msg = Message('Confirm Email', sender='iomt.confirmation@gmail.com', recipients=[data['email']])
-    link = url_for('confirm_email', user_id=id, token=token, _external=True)
+    link = url_for('confirm_email', token=token, _external=True)
     msg.body = 'Your link is {}'.format(link)
     mail.send(msg)
     return {"error": ""}, 200
 
 
-@app.route('/confirm_email/<user_id>/<token>')
-def confirm_email(user_id, token):
-    try:
-        url_tokenizer.loads(token, salt='email-confirm', max_age=3600)
-    except SignatureExpired:
-        return '<h1>The link is expired!</h1>'
-    user = Users.objects(user_id=user_id).first()
-    user.confirmed = True
-    user.save()
+@app.route('/confirm_email/<token>')
+def confirm_email(token):
+    body = decode_token(token, secret=settings.EMAIL_JWT_KEY)
+    body['password_hash'], body['salt'] = hash_password(body['password'])
+    User.create(**body)
     return '<h1>Email confirmed!</h1>'
 
 from blueprints.api import bp as api_bp
