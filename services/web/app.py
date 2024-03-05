@@ -57,9 +57,9 @@ url_tokenizer = URLSafeTimedSerializer(app.config['SECRET_KEY'])  # Serializer f
 mail = Mail(app)  # For sending confirmation emails
 
 
-def create_file(user_id, device_id, begin, end):
+def create_file(login, device_id, begin, end):
     """Generates file with data"""
-    name = user_id + '_' + device_id.replace(':', '')
+    name = login + '_' + device_id.replace(':', '')
     query = "select * from {} where Clitime between '{}' and '{}'".format(name, begin, end)
     """ Код до мерджа с докером
     clientdb = Client(host='172.30.7.214', password = click_password)
@@ -68,10 +68,10 @@ def create_file(user_id, device_id, begin, end):
     res = get_clickhouse_data(query)
     file_name = name + '_' + str(random.randint(1, 1000000)) + '.csv'
 
-    d = Device.select().where(user_id=user_id)
+    d = Device.select().where(Device.user.login==login)
     d_type = d.device_type
 
-    device = Device.objects(device_type=d_type).first()
+    device = d.device_type
     columns = device.columns.split(',')
 
     with open('files/' + file_name, 'w+') as out:
@@ -84,10 +84,9 @@ def create_file(user_id, device_id, begin, end):
 
 
 @manager.user_loader
-def load_user(user_id):
+def load_user(login):
     """Configure user loader"""
-    req = Operator.select().where(id=user_id)
-    return conn.execute(req)
+    return Operator.select().where(Operator.login==login)
 
 
 @app.route('/auth/', methods=['POST'])
@@ -95,8 +94,8 @@ def load_user(user_id):
 def authenticate():
     data = request.json
     if data['login'] and data['password']:
-        confirmed, jwt, code, user_id = auth.check_user(data['login'], data['password'])
-        return jsonify({'jwt':jwt, "confirmed": confirmed, "user_id":user_id}), code
+        confirmed, jwt, code, login = auth.check_user(data['login'], data['password'])
+        return jsonify({'jwt':jwt, "confirmed": confirmed, "login":login}), code
     return jsonify({}), 403
 
 
@@ -135,12 +134,12 @@ app.register_blueprint(blueprint=admins_bp, url_prefix='/admins')
 def get_data():
     if request.method == 'POST':
         form = UserList()
-        user_id = form.us_list.data
+        login = form.us_list.data
         form2 = UserData()
         devices = []
-        session["user_id"] = user_id
+        session["login"] = login
 
-        for d in Device.select().where(Device.user.id == user_id):
+        for d in Device.select().where(Device.user.login == login):
             devices.append((d.device_id, d.device_name))
 
         form2.device.choices = devices
@@ -148,8 +147,8 @@ def get_data():
     else:
         form = UserList()
         form.us_list.choices = [
-            (u.user_id, "{} {} {}".format(u.name, u.surname, u.patronymic))
-            for u in Info.objects
+            (u.login, "{} {} {}".format(u.name, u.surname, u.patronymic))
+            for u in User.select()
             if current_user.id in u.allowed
         ]
 
@@ -165,8 +164,8 @@ def get_data_second():
     date_begin = form.date_begin.data
     date_end = form.date_end.data
 
-    file = create_file(session['user_id'], device, date_begin, date_end)
-    return render_template('upload_file.html', name=session['user_id'], file=file)
+    file = create_file(session['login'], device, date_begin, date_end)
+    return render_template('upload_file.html', name=session['login'], file=file)
 
 
 @app.route('/users/', methods=["POST", "GET"])
@@ -175,15 +174,15 @@ def user_info():
     if request.method == 'GET':
         form = UserList()
         form.us_list.choices = [
-            ("{} {} {}".format(u.name, u.surname, u.patronymic))
-            for u in Info.objects
+            (u.login, "{} {} {}".format(u.name, u.surname, u.patronymic))
+            for u in User.select()
             if current_user.id in u.allowed
         ]
         return render_template('user_info.html', form=form)
     else:
         form = UserList()
         d = {}
-        q = Info.objects(user_id=form.us_list.data).first()
+        q = User.select().where(User.login==form.us_list.data)
         for i in q:
             d[i] = q[i]
         return render_template('user_info_data.html', user=d)
@@ -201,7 +200,7 @@ def new_user():
     data = request.get_json()
     resp = User.select().where(User.email==data['email'])
     if resp:
-        app.logger.info(f"User {resp.login} with provided email already exists")
+        app.logger.info("User with provided email already exists")
     if User.select().where(User.login==data["login"]):
         return {"error": "login"}, 200
 
