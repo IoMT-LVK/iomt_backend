@@ -34,6 +34,9 @@ class User(user):
 
 class Operator(operator, UserMixin):
 
+    def get_id(self):
+        return self.login
+
     @property
     def password(self):
         raise AttributeError("Вам не нужно знать пароль!")

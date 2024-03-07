@@ -3,7 +3,6 @@ from flask import Flask, render_template, request, redirect, session, send_file,
 from forms import *
 from blueprints.api import get_clickhouse_data
 from flask_wtf.csrf import CSRFProtect
-from models import  Users, Operators, Devices, Userdevices, Info
 from models2 import User, Operator, Device, DeviceType
 from werkzeug.security import generate_password_hash
 from flask_login import current_user, login_user, login_required, logout_user, LoginManager

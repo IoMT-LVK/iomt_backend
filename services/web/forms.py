@@ -38,13 +38,11 @@ class LoginForm(FlaskForm):
 
 
 class AddDevice(FlaskForm):
+    amount = 0
     name = StringField('Имя устройства', [DataRequired(message="Введите имя устройства")])
-    prefix = StringField('Префикс устройства', [DataRequired(message="Введите префикс устройства")])
-    heartrate = BooleanField('Датчик сердцебиения')
-    resprate = BooleanField('Частота дыхания')
-    kadence = BooleanField('Каденс')
-    sensors = TextAreaField('Датчики')
-    submit = SubmitField('Добавить')
+    tp = StringField('Тип устройства', [DataRequired(message="Введите тип устройства")])
+    submit = SubmitField('Добавить устройство')
+    add_char = SubmitField('Добавить характеристику', _name='add_char')
 
 
 class AddOperator(FlaskForm):
@@ -52,4 +50,3 @@ class AddOperator(FlaskForm):
     password = StringField('Пароль', [DataRequired(message="Введите пароль")])
     is_admin = BooleanField('Администратор')
     submit = SubmitField('Добавить')
-
