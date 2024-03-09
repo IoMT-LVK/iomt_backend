@@ -5,7 +5,7 @@
     <ol class="square">
         {% for op in operators %}
             <li>{{ op.login }}
-                <a onclick="if (! confirm('Удалить пользователя {{ op.login }}?')) { return false; }" href="delete-operator/{{ op.login }}">Удалить</a>
+                <a onclick="if (! confirm('Удалить оператора {{ op.login }}?')) { return false; }" href="delete-operator/{{ op.login }}">Удалить</a>
             </li>
         {% endfor %}
     </ol>
@@ -13,11 +13,20 @@
     <h1 style="margin-top: 32px">Доступные устройства</h1>
     <ol class="square">
         {% for device in devices %}
-            <li>{{ device.device_type }} ({{ device.prefix }})
+            <li>{{ device.device_type }} ({{ device.type }})
                 <a onclick="if (! confirm('Удалить устройство {{ device.device_type }}?')) { return false; }" href="delete-device/{{ device.pk }}">Удалить</a>
             </li>
         {% endfor %}
     </ol>
     <a href="add-device">Добавить устройство</a>
+    <h1>пользователи</h1>
+    <ol class="square">
+        {% for us in users %}
+            <li>{{ us.login }}
+                <a onclick="if (! confirm('Удалить пользователя {{ us.login }}?')) { return false; }" href="delete-user/{{ us.login }}">Удалить</a>
+            </li>
+        {% endfor %}
+    </ol>
+    <a href="add-user">Создать пользователя</a>
 
 {% endblock %}

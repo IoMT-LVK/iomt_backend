@@ -1,7 +1,7 @@
 import flask
 from flask_login import login_required, current_user
 from flask import current_app
-from services.rest_api.utils import hash_password
+from utils import hash_password
 from wtforms import StringField, SubmitField, IntegerField, FloatField, SelectField, SelectMultipleField, PasswordField, \
     TextAreaField, BooleanField
 from wtforms.validators import DataRequired
@@ -9,9 +9,8 @@ from wtforms.validators import DataRequired
 # noinspection PyUnresolvedReferences
 import forms
 # noinspection PyUnresolvedReferences
-from models2 import Operator, Device, DeviceType, Characteristic
+from models2 import Operator, User, Device, DeviceType, Characteristic
 # noinspection PyUnresolvedReferences
-import models
 
 bp = flask.Blueprint('admins', __name__)
 
@@ -25,8 +24,9 @@ def admin_panel():
     current_app.logger.info(f"Admin ({current_user.login}) come on admin panel")
     ops = Operator.select()
     device_types = Device.select()
+    users = User.select()
     current_app.logger.debug(f"Devices: {device_types}")
-    return flask.render_template("admin_panel.html", operators=ops, devices=device_types)
+    return flask.render_template("admin_panel.html", operators=ops, devices=device_types, users=users)
 
 
 @bp.route('/add-operator/', methods=['GET', 'POST'])
@@ -38,7 +38,7 @@ def admin_add_operator():
     if form.validate_on_submit():
         current_app.logger.info(f"Admin ({current_user.login}) created operator {form.login.data}")
         passw_hash, salt = hash_password(form.password.data)
-        Operator.create(login=form.login.data, password=passw_hash, salt=salt, is_admin=(True if form.is_admin.data else False))
+        Operator.create(login=form.login.data, password_hash=passw_hash, salt=salt, is_admin=(True if form.is_admin.data else False))
         return flask.redirect(flask.url_for('admins.admin_panel'))
 
     return flask.render_template("add_operator.html", form=form)
@@ -51,7 +51,7 @@ def admin_delete_operator(login_for_del):
         flask.abort(404)
     current_app.logger.info(f"Admin ({current_user.login}) deleted user ...")
     try:
-        ops = Operator.select().get(Operator.login==login_for_del)  # TODO: same login problem
+        ops = Operator.get(Operator.login==login_for_del)  # TODO: same login problem
         current_app.logger.info(f"User {ops.login} is deleted")
         ops.delete_instance()
     except Exception:
@@ -92,3 +92,19 @@ def delete_device_type(id_for_del):
         flask.abort(404)
     # TODO: implement device deletion
     return flask.redirect(flask.url_for('admin_panel'))
+
+
+@bp.route('/add-user/', methods=['GET', 'POST'])
+@login_required
+def admin_add_user():
+    form = forms.AddUser()
+    if not current_user.is_admin:
+        flask.abort(404)
+    if form.validate_on_submit():
+        current_app.logger.info(f"Admin ({current_user.login}) created user {form.login.data}")
+        passw_hash, salt = hash_password(form.password.data)
+        User.create(login=form.login.data, password_hash=passw_hash, salt=salt, weight=form.weight.data, height=form.height.data, email=form.email.data, name=form.name.data,
+                    surname=form.surname.data, patronymic=form.patronymic.data)
+        return flask.redirect(flask.url_for('admins.admin_panel'))
+
+    return flask.render_template("add_user.html", form=form)

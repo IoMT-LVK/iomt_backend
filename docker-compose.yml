@@ -6,7 +6,6 @@ name: iomt
 #   [Web app]
 #   - web-app -- web interface to collected stats
 #   - nginx -- server for web-app
-#   - mongo -- database =)
 #
 #   [Mosquitto app]
 #   - iomt_01 -- mqtt server (loadbalanced)
@@ -93,7 +92,13 @@ services:
     networks:
       - iomt
     depends_on:
-      - mongo
+      - rest_api
+    secrets:
+      - mail_password
+      - root_operator_password
+      - email_jwt_key
+      - jwt_key
+      - db_password
       
   nginx:
     image: nginx:1.24.0
@@ -109,13 +114,6 @@ services:
       - iomt
     environment:
       NGINX_ENTRYPOINT_QUIET_LOGS: 1
-
-  mongo:
-    image: mongo:7.0.5
-    volumes:
-      - data:/data/db
-    networks:
-      - iomt
 
   mysql:
     image: mysql:8.3.0

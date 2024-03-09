@@ -3,7 +3,7 @@ from flask import Flask, render_template, request, redirect, session, send_file,
 from forms import *
 from blueprints.api import get_clickhouse_data
 from flask_wtf.csrf import CSRFProtect
-from models2 import User, Operator, Device, DeviceType
+import models2
 from werkzeug.security import generate_password_hash
 from flask_login import current_user, login_user, login_required, logout_user, LoginManager
 import auth
@@ -13,10 +13,12 @@ import uuid
 import logging
 from flask_mail import Mail, Message
 from itsdangerous import URLSafeTimedSerializer, SignatureExpired
-from rest_api.utils import encode_token, decode_token, hash_password
-import rest_api.settings as settings
+from utils import encode_token, decode_token, hash_password
+import settings as settings
 from time import time
+import peewee
 
+Operator, User, DeviceType, Device = models2.Operator, models2.User, models2.DeviceType, models2.Device
 
 app = Flask(__name__)
 
@@ -85,7 +87,12 @@ def create_file(login, device_id, begin, end):
 @manager.user_loader
 def load_user(login):
     """Configure user loader"""
-    return Operator.select().where(Operator.login==login)
+    res = None
+    query = Operator.select().where(Operator.login==login)
+    for x in query:
+        res = x
+    app.logger.warning(f"Searching for {res}")
+    return res
 
 
 @app.route('/auth/', methods=['POST'])
@@ -112,9 +119,15 @@ def login():
     """Login page"""
     form = LoginForm()
     if request.method == 'POST':
-        operator = Operator.select().where(Operator.login==form.username.data)
+        app.logger.warning(f"================= {Operator} ==================")
+        app.logger.warning(f"================= {peewee.Metadata(Operator).table} ==================")
+        res = Operator.select().where(Operator.login==form.username.data)
+        for x in res:
+            operator = x
+        app.logger.warning(f"================= {operator} ==================")
+        app.logger.warning(f"{operator.password_hash} ---- {form.password.data}  ---- {type(res)} ---- {type(operator)}")
         if operator and operator.password_valid(form.password.data):
-            login_user(operator)
+            login_user(operator)    
             return redirect(url_for('main'))
         form.validate_on_submit()
         if not operator:
