@@ -23,10 +23,11 @@ def admin_panel():
         flask.abort(404)
     current_app.logger.info(f"Admin ({current_user.login}) come on admin panel")
     ops = Operator.select()
-    device_types = Device.select()
+    device_types = DeviceType.select()
     users = User.select()
+    chars = Characteristic.select()
     current_app.logger.debug(f"Devices: {device_types}")
-    return flask.render_template("admin_panel.html", operators=ops, devices=device_types, users=users)
+    return flask.render_template("admin_panel.html", operators=ops, devices=device_types, users=users, chars=chars)
 
 
 @bp.route('/add-operator/', methods=['GET', 'POST'])
@@ -65,24 +66,28 @@ def add_device_type():
     form = forms.AddDevice()
     if not current_user.is_admin:
         flask.abort(404)
-    if flask.request.method == 'GET':
-        return flask.render_template("add_device.html", form=form)
-    if flask.request.form.get('add_char') is not None:
-        form.__class__.amount += 1
-        for i in range(form.__class__.amount):
-            exec(f"form.ch_name_{i} = StringField('Имя характеристики', [DataRequired(message='Введите имя')])")
-            exec(f"form.slug_{i} = StringField('slug', [DataRequired(message='Введите slug')])")
-            exec(f"form.service_{i} = StringField('service', [DataRequired(message='Введите service')])")
-            exec(f"form.char_uid_{i} = StringField('char_uid', [DataRequired(message='Введите char_uid')])")
-        return flask.render_template("add_device.html", form=form)
-    char_list = list()
-    for x in range(form.__class__.amount):
-        exec(f"slug, name, serv, char_uid = form.slug_{x}, form.ch_name_{x}, form.service_{x}, form.char_uid_{x}")
-        char_list.append(Characteristic.create(name=name, slug=slug, service_uuid=serv, Characteristic_uuid=char_uid))
-    device = DeviceType.create(name=form.name.data, type=form.tp.data)
-    device.characteristics.add(char_list)
-    form.__class__.amount = 0
-    return flask.redirect('admin_panel')
+    form.chars.choices = [(c.slug, c.name) for c in Characteristic.select()]
+    if form.validate_on_submit():
+        device = DeviceType.create(name=form.name.data, type=form.tp.data)
+        char_list = form.chars.data
+        current_app.logger.info(", ".join(char_list))
+        for x in char_list:
+            ch = Characteristic.select().where(Characteristic.slug==x)
+            device.characteristics.add(ch)
+        return flask.redirect(flask.url_for('admins.admin_panel'))
+    return flask.render_template("add_device.html", form=form)
+
+
+@bp.route('/add-characteristic/', methods=['GET', 'POST'])
+@login_required
+def add_characteristic():
+    form = forms.AddCharacteristic()
+    if not current_user.is_admin:
+        flask.abort(404)
+    if form.validate_on_submit():
+        Characteristic.create(name=form.name.data, slug=form.slug.data, service_uuid=form.sid.data, characteristic_uuid=form.cid.data)
+        return flask.redirect(flask.url_for('admins.admin_panel'))
+    return flask.render_template("add_characteristic.html", form=form)
 
 
 @bp.route('/delete-device/<string:id_for_del>/', methods=['GET'])
@@ -91,7 +96,7 @@ def delete_device_type(id_for_del):
     if not current_user.is_admin:
         flask.abort(404)
     # TODO: implement device deletion
-    return flask.redirect(flask.url_for('admin_panel'))
+    return flask.redirect(flask.url_for('admins.admin_panel'))
 
 
 @bp.route('/add-user/', methods=['GET', 'POST'])

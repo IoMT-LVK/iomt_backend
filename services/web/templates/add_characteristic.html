@@ -1,0 +1,34 @@
+{% extends 'header.html' %}
+
+{% block container %}
+
+<h1>Добавить новую характеристику</h1>
+
+<form class="contact_form" method="POST" name="add-characteristic">
+
+    <p>Заполните поля для новой характеристики</p>
+
+<ul>
+    {{ form.csrf_token() }}
+    <li>
+        {{ form.name.label }}
+        {{ form.name }}
+    </li>
+    <li>
+        {{ form.slug.label }}
+        {{ form.slug }}
+    </li>
+    <li>
+        {{ form.sid.label }}
+        {{ form.sid }}
+    </li>
+    <li>
+        {{ form.cid.label }}
+        {{ form.cid }}
+    </li>
+
+</ul>
+    {{ form.submit(class_ = "submit") }}
+</form>
+
+{% endblock %}

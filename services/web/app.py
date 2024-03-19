@@ -186,7 +186,7 @@ def user_info():
     if request.method == 'GET':
         form = UserList()
         form.us_list.choices = [
-            (u.login, "{} {} {}".format(u.name, u.surname, u.patronymic))
+            (u.login, "{}: {} {}".format(u.login, u.name, u.surname))
             for u in User.select()
             if current_user.id in u.allowed
         ]

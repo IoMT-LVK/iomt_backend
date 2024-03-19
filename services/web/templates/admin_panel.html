@@ -19,7 +19,7 @@
         {% endfor %}
     </ol>
     <a href="add-device">Добавить устройство</a>
-    <h1>пользователи</h1>
+    <h1>Пользователи</h1>
     <ol class="square">
         {% for us in users %}
             <li>{{ us.login }}
@@ -28,5 +28,14 @@
         {% endfor %}
     </ol>
     <a href="add-user">Создать пользователя</a>
+    <h1>Характеристики</h1>
+    <ol class="square">
+        {% for ch in chars %}
+            <li>{{ ch.name }}
+                <!--<a onclick="if (! confirm('Удалить характеристику {{ ch.name }}?')) { return false; }" href="delete-characteristic/{{ ch.name }}">Удалить</a>-->
+            </li>
+        {% endfor %}
+    </ol>
+    <a href="add-characteristic">Создать характеристику</a>
 
 {% endblock %}

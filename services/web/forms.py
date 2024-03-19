@@ -2,6 +2,7 @@ from flask_wtf import FlaskForm
 from wtforms import StringField, SubmitField, IntegerField, FloatField, SelectField, SelectMultipleField, PasswordField, \
     TextAreaField, BooleanField
 from wtforms.validators import DataRequired
+from wtforms import widgets
 
 
 class UserData(FlaskForm):
@@ -37,12 +38,24 @@ class LoginForm(FlaskForm):
     submit = SubmitField('Войти')
 
 
+class MultiCheckboxField(SelectMultipleField):
+    widget = widgets.ListWidget(html_tag='ul', prefix_label=False)
+    option_widget = widgets.CheckboxInput()
+
+
 class AddDevice(FlaskForm):
-    amount = 0
     name = StringField('Имя устройства', [DataRequired(message="Введите имя устройства")])
     tp = StringField('Тип устройства', [DataRequired(message="Введите тип устройства")])
+    chars = MultiCheckboxField('Характеристики')
     submit = SubmitField('Добавить устройство')
-    add_char = SubmitField('Добавить характеристику', _name='add_char')
+
+
+class AddCharacteristic(FlaskForm):
+    slug = StringField('slug', [DataRequired(message="Введите slug")])
+    name = StringField('Имя характеристики', [DataRequired(message="Введите имя характеристики")])
+    sid = StringField('Service uuid:', [DataRequired(message="Введите service uuid")])
+    cid = StringField('Characteristic uuid:', [DataRequired(message="Введите characteristic uuid")])
+    submit = SubmitField('Добавить характеристику')
 
 
 class AddOperator(FlaskForm):

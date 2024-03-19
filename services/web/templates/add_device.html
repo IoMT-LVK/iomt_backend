@@ -4,7 +4,7 @@
 
 <h1>Добавить новое устройство</h1>
 
-<form class="contact_form" method="POST" action="/devices/add/", name="add-device">
+<form class="contact_form" method="POST" name="add-device">
 
     <p>Введите датчики устройства в следующем формате: название датчика - имя датчика </p>
     <p>Каждая запись должна быть на новой строке</p>
@@ -16,8 +16,12 @@
         {{ form.name }}
     </li>
     <li>
-        {{ form.sensors.label }}
-        {{ form.sensors }}
+        {{ form.tp.label }}
+        {{ form.tp }}
+    </li>
+    <li>
+        {{ form.chars.label }}
+        {{ form.chars }}
     </li>
 
 </ul>

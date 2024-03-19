@@ -63,7 +63,7 @@ class UserView(MethodView):
         )
         # TODO тут лучше сделать вайтлист retpath'ов чтобы левые ссылки от нашего имени не отправлялись
         self._send_reg_email(body['email'], body['retpath'], token)
-        return {'status': 'Confirmation link sent to email'} 
+        return {'status': 'Confirmation link sent to email'}
 
     def put(self, body, user, token_info, id=None):
         if id is None and type(user) is User:
@@ -78,7 +78,7 @@ class UserView(MethodView):
         
         if (
             type(user) is User and id == user.id or
-            type(user) is Operator and operator.is_admin and id is not None
+            type(user) is Operator and user.is_admin and id is not None
         ):
             User.set_by_id(id, body)
             return NoContent

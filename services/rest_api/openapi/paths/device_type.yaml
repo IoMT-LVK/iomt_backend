@@ -31,7 +31,7 @@ device_type_by_id:
     - device_type
     - single
     requestBody:
-      description: "Fileds with new values."
+      description: "Fields with new values."
       content:
         application/json:
           schema:

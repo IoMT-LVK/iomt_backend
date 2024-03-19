@@ -18,7 +18,6 @@ properties:
         - bracelet
     required:
     - name
-    - name_regex
     - type
   characteristics:
     type: object
