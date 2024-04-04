@@ -63,3 +63,16 @@ class AddOperator(FlaskForm):
     password = StringField('Пароль', [DataRequired(message="Введите пароль")])
     is_admin = BooleanField('Администратор')
     submit = SubmitField('Добавить')
+
+
+class ConnectUser(FlaskForm):
+    operator_login = StringField('Логин', [DataRequired(message="Введите логин оператора")])
+    user_login = StringField('Логин', [DataRequired(message="Введите логин пользователя")])
+    submit = SubmitField('Привязать')
+
+
+class ConnectDevice(FlaskForm):
+    user_login = StringField('Логин', [DataRequired(message="Введите логин пользователя")])
+    device_name = StringField('Логин', [DataRequired(message="Введите название устройства")])
+    mac = StringField('MAC адрес', [DataRequired(message="Введите mac адрес устройства")])
+    submit = SubmitField('Привязать')

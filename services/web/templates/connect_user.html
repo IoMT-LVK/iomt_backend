@@ -1,0 +1,23 @@
+{% extends 'header.html' %}
+
+{% block container %}
+
+<form  class="contact_form" method="POST" name="connect-user">
+<ul>
+    {{ form.csrf_token() }}
+    <li>
+         <h2>Привязка пользователя к оператору</h2>
+    </li>
+    <li>
+        {{ form.user_login.label }}
+        {{ form.user_login }}
+    </li>
+    <li>
+        {{ form.operator_login.label }}
+        {{ form.operator_login }}
+    </li>
+</ul>
+    {{ form.submit(class_ = "submit") }}
+</form>
+
+{% endblock %}

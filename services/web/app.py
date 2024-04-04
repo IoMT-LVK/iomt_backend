@@ -127,7 +127,7 @@ def login():
         app.logger.warning(f"================= {operator} ==================")
         app.logger.warning(f"{operator.password_hash} ---- {form.password.data}  ---- {type(res)} ---- {type(operator)}")
         if operator and operator.password_valid(form.password.data):
-            login_user(operator)    
+            login_user(operator)
             return redirect(url_for('main'))
         form.validate_on_submit()
         if not operator:
@@ -158,10 +158,16 @@ def get_data():
         return render_template('data2.html', form=form2)
     else:
         form = UserList()
+        all_users = User.select()
+        allowed = list()
+        for u in all_users:
+            for x in u.allowed:
+                if x.login == current_user.login or current_user.is_admin:
+                    allowed.append(u)
+                    break
         form.us_list.choices = [
             (u.login, "{} {} {}".format(u.name, u.surname, u.patronymic))
-            for u in User.select()
-            if current_user.id in u.allowed
+            for u in allowed
         ]
 
         return render_template('data.html', form=form)
@@ -188,7 +194,7 @@ def user_info():
         form.us_list.choices = [
             (u.login, "{}: {} {}".format(u.login, u.name, u.surname))
             for u in User.select()
-            if current_user.id in u.allowed
+            if current_user.id in u.allowed or current_user.is_admin
         ]
         return render_template('user_info.html', form=form)
     else:

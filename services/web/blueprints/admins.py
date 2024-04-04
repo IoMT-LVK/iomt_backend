@@ -113,3 +113,40 @@ def admin_add_user():
         return flask.redirect(flask.url_for('admins.admin_panel'))
 
     return flask.render_template("add_user.html", form=form)
+
+
+@bp.route('/connect-user/', methods=['GET', 'POST'])
+@login_required
+def connect_user():
+    if not current_user.is_admin:
+        flask.abort(404)
+    form = forms.ConnectUser()
+    if form.validate_on_submit():
+        current_app.logger.info(f"Admin ({current_user.login}) connected user {form.user_login.data} to operator {form.operator_login.data}")
+        try:
+            user = User.get(User.login == form.user_login.data)
+            user.allowed.add(Operator.select().where(Operator.login == form.operator_login.data))
+        except Exception as e:
+            import traceback
+            current_app.logger.info(traceback.format_exception(e))
+        return flask.redirect(flask.url_for('admins.admin_panel'))
+    return flask.render_template("connect_user.html", form=form)
+
+
+@bp.route('/connect-device/', methods=['GET'])
+@login_required
+def connect_device():
+    if not current_user.is_admin:
+        flask.abort(404)
+    form = forms.ConnectDevice()
+    if form.validate_on_submit():
+        current_app.logger.info(f"Admin ({current_user.login}) connected device {form.device_name.data} to user {form.user_login.data}")
+        try:
+            user = User.select().where(User.login==form.user_login.data)
+            device_type = DeviceType.select().where(DeviceType.name==form.device_name.data)
+            device = Device.create(user=user, device_type=device_type, mac=form.mac.data)
+        except Exception as e:
+            import traceback
+            current_app.logger.info(traceback.format_exception(e))
+        return flask.redirect(flask.url_for('admins.admin_panel'))
+    return flask.render_template("connect_user.html", form=form)
