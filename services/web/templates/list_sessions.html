@@ -1,0 +1,11 @@
+{% extends 'header.html' %}
+
+{% block container %}
+
+{% for session in sessions %}
+<h5>Start:</h5> {{session[0]}}
+<h5>End:</h5> {{session[1]}}
+<hr>
+{% endfor %}
+
+{% endblock %}

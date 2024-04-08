@@ -17,6 +17,9 @@ from utils import encode_token, decode_token, hash_password
 import settings as settings
 from time import time
 import peewee
+import traceback
+import clickhouse_connect as clickhouse
+import datetime
 
 Operator, User, DeviceType, Device = models2.Operator, models2.User, models2.DeviceType, models2.Device
 
@@ -57,6 +60,16 @@ csrf = CSRFProtect(app)  # Init CSRF in WTForms for excluding it in interaction 
 url_tokenizer = URLSafeTimedSerializer(app.config['SECRET_KEY'])  # Serializer for generating email confirmation tokens
 mail = Mail(app)  # For sending confirmation emails
 
+API_USERNAME = "mqttUser"
+API_PASSWORD = "resUttqm"
+
+CH_HOST = 'clickhouse'
+CH_USER = API_USERNAME
+CH_PASSWORD = API_PASSWORD
+CH_DATABASE = 'IoMT_DB'
+CH_TABLENAME_FORMAT = '{user_id}_{slug}_{freq}'
+CH_SESSIONS_FORMAT = 'sessions_{user_id}_{slug}_{freq}'
+
 
 def create_file(login, device_id, begin, end):
     """Generates file with data"""
@@ -82,6 +95,17 @@ def create_file(login, device_id, begin, end):
             csv_out.writerow(row)
 
     return file_name
+
+
+def get_allowed_users(op):
+    users = User.select()
+    result = list()
+    for u in users:
+        for x in u.allowed:
+            if x.login == op.login or op.is_admin:
+                result.append(u)
+                break
+    return result
 
 
 @manager.user_loader
@@ -121,11 +145,14 @@ def login():
     if request.method == 'POST':
         app.logger.warning(f"================= {Operator} ==================")
         app.logger.warning(f"================= {peewee.Metadata(Operator).table} ==================")
-        res = Operator.select().where(Operator.login==form.username.data)
-        for x in res:
-            operator = x
+        try:
+            operator = Operator.select().where(Operator.login==form.username.data)[0]
+        except:
+            app.logger.error(f"No operator {form.username.data}")
+            return render_template("login.html", form=form)
+
         app.logger.warning(f"================= {operator} ==================")
-        app.logger.warning(f"{operator.password_hash} ---- {form.password.data}  ---- {type(res)} ---- {type(operator)}")
+        app.logger.warning(f"{operator.password_hash} ---- {form.password.data} ---- {type(operator)}")
         if operator and operator.password_valid(form.password.data):
             login_user(operator)
             return redirect(url_for('main'))
@@ -158,13 +185,7 @@ def get_data():
         return render_template('data2.html', form=form2)
     else:
         form = UserList()
-        all_users = User.select()
-        allowed = list()
-        for u in all_users:
-            for x in u.allowed:
-                if x.login == current_user.login or current_user.is_admin:
-                    allowed.append(u)
-                    break
+        allowed = get_allowed_users(current_user)
         form.us_list.choices = [
             (u.login, "{} {} {}".format(u.name, u.surname, u.patronymic))
             for u in allowed
@@ -234,6 +255,100 @@ def new_user():
     msg.body = 'Your link is {}'.format(link)
     mail.send(msg)
     return {"error": ""}, 200
+
+
+@app.route('/<login>/sessions', methods=['GET', 'POST'])
+@csrf.exempt
+def get_sessions(login):
+    """Interface for operator to see users sessions"""
+    if login not in list((u.login for u in get_allowed_users(current_user))):
+        return redirect(url_for('main'))
+    clh_client = clickhouse.get_client(
+        host=CH_HOST,
+        user=CH_USER,
+        password=CH_PASSWORD,
+        database=CH_DATABASE,
+        client_name=CH_USER,
+    )
+    # create table karlstedt20148/fsdfsd/99:55/50;
+    devices = Device.select().where(Device.user==User.select().where(User.login==login))
+    all_sessions = list()
+    for dev in devices:
+        for freq in settings.FREQ:
+            table = CH_SESSIONS_FORMAT.format(
+                user_id=login,
+                mac=dev.mac,
+                slug=dev.device_type.name,
+                freq=freq
+            )
+            app.logger.info(f"Selecting data from {table}")
+            try:
+                sessions_data = clh_client.query(f"""SELECT * FROM {table}""")
+                all_sessions.extend(sessions_data.result_rows)
+            except Exception as e:
+                app.logger.error(traceback.format_exception(e))
+    return render_template('list_sessions.html', sessions=all_sessions)
+
+
+@app.route('/<login>/devices', methods=['GET'])
+@csrf.exempt
+def get_devices(login):
+    """Interface for operator to see users sessions"""
+    if login not in list((u.login for u in get_allowed_users(current_user))):
+        return redirect(url_for('main'))
+    devices = Device.select().where(Device.user==User.select().where(User.login==login))
+    return render_template('list_devices.html', devices=devices)
+
+
+@app.route('/select', methods=['GET', 'POST'])
+@csrf.exempt
+def select_data():
+    """Interface for operator to select needed data from a particular user"""
+    form = GetData()
+    if form.validate_on_submit():
+        login = form.user_login.data
+        if login not in list((u.login for u in get_allowed_users(current_user))):
+            return redirect(url_for('main'))
+        return redirect(url_for('graphic', login=form.user_login.data, dev_name=form.device_name.data,
+                                mac=form.mac.data, start=form.start_date.data.strftime('%Y-%m-%d %H:%M:%S:%f'),
+                                end=form.end_date.data.strftime('%Y-%m-%d %H:%M:%S:%f')))
+    return render_template('select_data.html', form=form)
+
+
+@app.route('/select/result', methods=['GET', 'POST'])
+@csrf.exempt
+def graphic():
+    try:
+        login, dev_name, mac, start, end = request.args["login"], request.args["dev_name"], request.args["mac"], request.args["start"], request.args["end"]
+    except Exception as e:
+        app.logger.error(traceback.format_exception(e))
+        return
+        
+    if login not in list((u.login for u in get_allowed_users(current_user))):
+        app.logger.error(f"No access for operator {current_user.login} to user {login}")
+        return redirect(url_for('main'))
+    clh_client = clickhouse.get_client(
+        host=CH_HOST,
+        user=CH_USER,
+        password=CH_PASSWORD,
+        database=CH_DATABASE,
+        client_name=CH_USER,
+    )
+    data = list()
+    app.logger.info(f"Selecting data in range {start} to {end} from clickhouse")
+    for freq in settings.FREQ:
+        table_name = CH_TABLENAME_FORMAT.format(
+            user_id=login,
+            mac=mac,
+            slug=dev_name,
+            freq=freq
+        )
+        try:
+            res = clh_client.query(f"""SELECT * FROM {table_name} WHERE timestamp >= '{start[::-1].replace(":", ".")[::-1]}' AND timestamp <= '{end[::-1].replace(":", ".")[::-1]}'""")
+            data.extend(res.result_rows)
+        except Exception as e:
+            app.logger.error(traceback.format_exception(e))
+    return render_template('display_data.html', data=data)
 
 
 @app.route('/confirm_email/<token>')

@@ -1,6 +1,6 @@
 from flask_wtf import FlaskForm
 from wtforms import StringField, SubmitField, IntegerField, FloatField, SelectField, SelectMultipleField, PasswordField, \
-    TextAreaField, BooleanField
+    TextAreaField, BooleanField, DateTimeField
 from wtforms.validators import DataRequired
 from wtforms import widgets
 
@@ -73,6 +73,16 @@ class ConnectUser(FlaskForm):
 
 class ConnectDevice(FlaskForm):
     user_login = StringField('Логин', [DataRequired(message="Введите логин пользователя")])
-    device_name = StringField('Логин', [DataRequired(message="Введите название устройства")])
+    device_name = StringField('Имя устройства', [DataRequired(message="Введите название устройства")])
     mac = StringField('MAC адрес', [DataRequired(message="Введите mac адрес устройства")])
     submit = SubmitField('Привязать')
+
+
+class GetData(FlaskForm):
+    user_login = StringField('Логин', [DataRequired(message="Введите логин пользователя")])
+    device_name = StringField('Имя устройства', [DataRequired(message="Введите название устройства")])
+    mac = StringField('MAC адрес', [DataRequired(message="Введите mac адрес устройства")])
+    freq = StringField('Частота')
+    start_date = DateTimeField('Начало измеряемого периода', format='%Y-%m-%d %H:%M:%S:%f')
+    end_date = DateTimeField('Конец измеряемого периода', format='%Y-%m-%d %H:%M:%S:%f')
+    submit = SubmitField('Выбрать')

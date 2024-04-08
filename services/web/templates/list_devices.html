@@ -1,0 +1,13 @@
+{% extends 'header.html' %}
+
+{% block container %}
+
+{% for dev in devices %}
+<ul>
+    <h5>MAC:</h5> {{dev.mac}}
+    <h5>Device name:</h5> {{dev.device_type.name}}
+</ul>
+<hr>
+{% endfor %}
+
+{% endblock %}

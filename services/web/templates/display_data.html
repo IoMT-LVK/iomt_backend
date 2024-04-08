@@ -1,0 +1,11 @@
+{% extends 'header.html' %}
+
+{% block container %}
+
+{% for val in data %}
+<h5>Time:</h5> {{val[0]}}
+<h5>Value:</h5> {{val[1]}}
+<hr>
+{% endfor %}
+
+{% endblock %}

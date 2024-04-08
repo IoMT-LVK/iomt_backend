@@ -75,8 +75,23 @@ h2 {
     position: relative;
 }
 
+.char_list ul {
+    padding: 10px;
+    margin-top: 10px;
+}
+
+.char_list li {
+    padding: 5px;
+    border-bottom: none;
+}
+
 .contact_form li:first-child {
     border-bottom: 1px solid #777;
+}
+
+.char_list li:first-child {
+    padding-top: 10px;
+    border-bottom: none;
 }
 
 

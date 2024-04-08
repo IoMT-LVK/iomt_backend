@@ -2,11 +2,11 @@
 
 {% block container %}
 
-<form  class="contact_form"   method="POST" name="connect-device">
+<form  class="contact_form"   method="POST" name="select">
 <ul>
     {{ form.csrf_token() }}
     <li>
-         <h2>Введите информацию об операторе</h2>
+         <h2>Какие данные вы хотите получить?</h2>
     </li>
     <li>
         {{ form.user_login.label }}
@@ -19,6 +19,18 @@
     <li>
         {{ form.mac.label }}
         {{ form.mac }}
+    </li>
+    <li>
+        {{ form.freq.label }}
+        {{ form.freq }}
+    </li>
+    <li>
+        {{ form.start_date.label }}
+        {{ form.start_date }}
+    </li>
+    <li>
+        {{ form.end_date.label }}
+        {{ form.end_date }}
     </li>
 </ul>
     {{ form.submit(class_ = "submit") }}

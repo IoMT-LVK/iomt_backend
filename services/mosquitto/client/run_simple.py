@@ -99,14 +99,9 @@ def process_msg(client, userdata, message):
     topic_info = message.topic.split('/', 5)
     if len(topic_info) != 6:
         log.error(f"Unknown topic format: {message.topic}")
-        return 
+        return
     _, user_id, mac, dev_name, freq, flag = topic_info
     data = json.loads(message.payload)
-    try:
-        user_id = int(user_id)
-    except ValueError:
-        log.error(f"Invalid user_id: {user_id}")
-        return
     try:
         value = float(data['value'])
     except ValueError:
