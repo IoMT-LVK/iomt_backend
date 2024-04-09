@@ -2,10 +2,17 @@
 
 {% block container %}
 
-{% for session in sessions %}
-<h5>Start:</h5> {{session[0]}}
-<h5>End:</h5> {{session[1]}}
-<hr>
-{% endfor %}
+<table>
+    <tr>
+        <th>Start</th>
+        <th>End</th>
+    </tr>
+    {% for session in sessions %}
+    <tr>
+        <td>{{session[0]}}</td>
+        <td>{{session[1]}}</td>
+    </tr>
+    {% endfor %}
+</table>
 
 {% endblock %}

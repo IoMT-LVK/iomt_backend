@@ -2,12 +2,17 @@
 
 {% block container %}
 
-{% for dev in devices %}
-<ul>
-    <h5>MAC:</h5> {{dev.mac}}
-    <h5>Device name:</h5> {{dev.device_type.name}}
-</ul>
-<hr>
-{% endfor %}
+<table>
+    <tr>
+        <th>MAC</th>
+        <th>Device name</th>
+    </tr>
+    {% for dev in devices %}
+    <tr>
+        <td>{{dev.mac}}</td>
+        <td>{{dev.device_type.name}}</td>
+    </tr>
+    {% endfor %}
+</table>
 
 {% endblock %}

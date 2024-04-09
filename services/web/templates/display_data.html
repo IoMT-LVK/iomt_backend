@@ -1,11 +1,46 @@
 {% extends 'header.html' %}
 
-{% block container %}
+<div>
+<canvas id="myChart"></canvas>
+</div>
+  
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-{% for val in data %}
-<h5>Time:</h5> {{val[0]}}
-<h5>Value:</h5> {{val[1]}}
-<hr>
-{% endfor %}
+<script>
+    const ctx = document.getElementById('myChart');
+    
+    const config = {
+        type: 'line',
+        data: data,
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                position: 'top',
+                },
+                title: {
+                display: true,
+                text: 'Chart.js Line Chart'
+                }
+            }
+        },
+    };
+
+    new Chart(ctx, config);
+  </script>
+
+{% block container %}
+<table>
+    <tr>
+        <th>Time</th>
+        <th>Value</th>
+    </tr>
+    {% for val in data %}
+    <tr>
+        <td>{{val[0]}}</td>
+        <td>{{val[1]}}</td>
+    </tr>
+    {% endfor %}
+</table>
 
 {% endblock %}

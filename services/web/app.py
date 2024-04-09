@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, session, send_file, jsonify, url_for
+from flask import Flask, render_template, request, redirect, session, send_file, jsonify, url_for, send_from_directory
 
 from forms import *
 from blueprints.api import get_clickhouse_data
@@ -10,6 +10,7 @@ import auth
 import random
 import csv
 import uuid
+import os
 import logging
 from flask_mail import Mail, Message
 from itsdangerous import URLSafeTimedSerializer, SignatureExpired
@@ -71,30 +72,40 @@ CH_TABLENAME_FORMAT = '{user_id}_{slug}_{freq}'
 CH_SESSIONS_FORMAT = 'sessions_{user_id}_{slug}_{freq}'
 
 
-def create_file(login, device_id, begin, end):
+def create_file(login, dev_name, start, end):
     """Generates file with data"""
-    name = login + '_' + device_id.replace(':', '')
-    query = "select * from {} where Clitime between '{}' and '{}'".format(name, begin, end)
-    """ Код до мерджа с докером
-    clientdb = Client(host='172.30.7.214', password = click_password)
-    res = clientdb.execute(query)
-    """
-    res = get_clickhouse_data(query)
-    file_name = name + '_' + str(random.randint(1, 1000000)) + '.csv'
+    clh_client = clickhouse.get_client(
+        host=CH_HOST,
+        user=CH_USER,
+        password=CH_PASSWORD,
+        database=CH_DATABASE,
+        client_name=CH_USER,
+    )
+    data = list()
+    app.logger.info(f"Selecting data in range {start} to {end} from clickhouse")
+    for freq in settings.FREQ:
+        table_name = CH_TABLENAME_FORMAT.format(
+            user_id=login,
+            slug=dev_name,
+            freq=freq
+        )
+        try:
+            res = clh_client.query(f"""SELECT * FROM {table_name} WHERE timestamp >= '{start[::-1].replace(":", ".")[::-1]}' AND timestamp <= '{end[::-1].replace(":", ".")[::-1]}'""")
+            data.extend(res.result_rows)
+        except Exception as e:
+            app.logger.error(traceback.format_exception(e))
 
-    d = Device.select().where(Device.user.login==login)
-    d_type = d.device_type
-
-    device = d.device_type
-    columns = device.columns.split(',')
-
-    with open('files/' + file_name, 'w+') as out:
+    if not os.path.exists('files/'):
+        os.mkdir('files')
+    file_name = login + datetime.datetime.now().strftime('%d-%m-%Y_%H:%M:%S.%f') + ".csv"
+    columns = ["Time", "Value"]
+    with open(os.path.join('files/', file_name), 'w+') as out:
         csv_out = csv.writer(out)
         csv_out.writerow(columns)
-        for row in res:
+        for row in data:
             csv_out.writerow(row)
 
-    return file_name
+    return os.path.join('files/', file_name)
 
 
 def get_allowed_users(op):
@@ -227,12 +238,6 @@ def user_info():
         return render_template('user_info_data.html', user=d)
 
 
-@app.route('/download/<file>')
-@login_required
-def download_file(file):
-    return send_file('files/' + file, as_attachment=True)
-
-
 @app.route('/users/register/', methods=['POST'])
 @csrf.exempt
 def new_user():
@@ -315,6 +320,22 @@ def select_data():
     return render_template('select_data.html', form=form)
 
 
+@app.route('/download', methods=['GET', 'POST'])
+@csrf.exempt
+def download_data():
+    """Interface for operator to download needed data from a particular user"""
+    form = GetData()
+    if form.validate_on_submit():
+        login = form.user_login.data
+        if login not in list((u.login for u in get_allowed_users(current_user))):
+            return redirect(url_for('main'))
+        filename = create_file(login=form.user_login.data, dev_name=form.device_name.data,
+                               start=form.start_date.data.strftime('%Y-%m-%d %H:%M:%S:%f'),
+                                end=form.end_date.data.strftime('%Y-%m-%d %H:%M:%S:%f'))
+        return send_file(filename)
+    return render_template('select_data.html', form=form)
+
+
 @app.route('/select/result', methods=['GET', 'POST'])
 @csrf.exempt
 def graphic():
@@ -339,7 +360,6 @@ def graphic():
     for freq in settings.FREQ:
         table_name = CH_TABLENAME_FORMAT.format(
             user_id=login,
-            mac=mac,
             slug=dev_name,
             freq=freq
         )
