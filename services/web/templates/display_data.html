@@ -11,7 +11,13 @@
     
     const config = {
         type: 'line',
-        data: data,
+        data: {
+            labels: {{timestamps | tojson}},
+            datasets: [{
+                label: "Данные ЭКГ",
+                data: {{data | tojson}}
+            }]
+        },
         options: {
             responsive: true,
             plugins: {
@@ -23,7 +29,7 @@
                 text: 'Chart.js Line Chart'
                 }
             }
-        },
+        }
     };
 
     new Chart(ctx, config);
@@ -35,10 +41,10 @@
         <th>Time</th>
         <th>Value</th>
     </tr>
-    {% for val in data %}
+    {% for val, tm in zip(data, timestamps) %}
     <tr>
-        <td>{{val[0]}}</td>
-        <td>{{val[1]}}</td>
+        <td>{{tm}}</td>
+        <td>{{val}}</td>
     </tr>
     {% endfor %}
 </table>

@@ -13,7 +13,7 @@
     <h1 style="margin-top: 32px">Доступные устройства</h1>
     <ol class="square">
         {% for device in devices %}
-            <li>{{ device.device_type }} ({{ device.type }})
+	<li>{{ device.name }}
                 <a onclick="if (! confirm('Удалить устройство {{ device.device_type }}?')) { return false; }" href="delete-device/{{ device.pk }}">Удалить</a>
             </li>
         {% endfor %}

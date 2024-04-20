@@ -22,7 +22,7 @@ import traceback
 import clickhouse_connect as clickhouse
 import datetime
 
-Operator, User, DeviceType, Device = models2.Operator, models2.User, models2.DeviceType, models2.Device
+Operator, User, DeviceType, Device, db = models2.Operator, models2.User, models2.DeviceType, models2.Device, models2.db
 
 app = Flask(__name__)
 
@@ -72,6 +72,11 @@ CH_TABLENAME_FORMAT = '{user_id}_{slug}_{freq}'
 CH_SESSIONS_FORMAT = 'sessions_{user_id}_{slug}_{freq}'
 
 
+@app.before_request
+def connect_db():
+    db.connect(reuse_if_open=True)
+
+
 def create_file(login, dev_name, start, end):
     """Generates file with data"""
     clh_client = clickhouse.get_client(
@@ -111,9 +116,14 @@ def create_file(login, dev_name, start, end):
 def get_allowed_users(op):
     users = User.select()
     result = list()
+    app.logger.info(f"Operator {op.login} is {op.is_admin}")
     for u in users:
+        app.logger.info(u.login)
+        if op.is_admin:
+            result.append(u)
+            continue
         for x in u.allowed:
-            if x.login == op.login or op.is_admin:
+            if x.login == op.login:
                 result.append(u)
                 break
     return result
@@ -158,8 +168,9 @@ def login():
         app.logger.warning(f"================= {peewee.Metadata(Operator).table} ==================")
         try:
             operator = Operator.select().where(Operator.login==form.username.data)[0]
-        except:
+        except Exception as e:
             app.logger.error(f"No operator {form.username.data}")
+            app.logger.error(traceback.format_exception(e))
             return render_template("login.html", form=form)
 
         app.logger.warning(f"================= {operator} ==================")
@@ -266,6 +277,7 @@ def new_user():
 @csrf.exempt
 def get_sessions(login):
     """Interface for operator to see users sessions"""
+    app.logger.info(list((u.login for u in get_allowed_users(current_user))))
     if login not in list((u.login for u in get_allowed_users(current_user))):
         return redirect(url_for('main'))
     clh_client = clickhouse.get_client(
