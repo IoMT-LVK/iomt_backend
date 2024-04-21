@@ -76,6 +76,11 @@ CH_SESSIONS_FORMAT = 'sessions_{user_id}_{slug}_{freq}'
 def connect_db():
     db.connect(reuse_if_open=True)
 
+@app.teardown_request
+def db_disconnect(exc):
+    if not db.is_closed():
+        db.close()
+
 
 def create_file(login, dev_name, start, end):
     """Generates file with data"""
