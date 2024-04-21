@@ -161,7 +161,7 @@ def main():
     if not current_user.is_authenticated:
         return redirect(url_for('login'))
     else:
-        return redirect(url_for('get_data'))
+        return redirect(url_for('user_info'))
 
 
 @app.route('/login/', methods=['GET', 'POST'])
