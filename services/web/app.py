@@ -247,10 +247,9 @@ def user_info():
         return render_template('user_info.html', form=form)
     else:
         form = UserList()
-        d = {}
         q = User.select().where(User.login==form.us_list.data)
         for i in q:
-            d[i] = q[i]
+            d = i
         return render_template('user_info_data.html', user=d)
 
 
