@@ -238,13 +238,12 @@ h2 {
 
 
 .table {
-	width: 100%;
 	border: none;
 	margin-bottom: 20px;
 }
 .table thead th {
 	font-weight: bold;
-	text-align: left;
+	text-align: center;
 	border: none;
 	padding: 10px 15px;
 	background: #d8d8d8;
@@ -253,7 +252,7 @@ h2 {
 	border-right: 1px solid #ddd;
 }
 .table tbody td {
-	text-align: left;
+	text-align: center;
 	border-left: 1px solid #ddd;
 	border-right: 1px solid #ddd;
 	padding: 10px 15px;

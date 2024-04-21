@@ -1,13 +1,9 @@
 {% extends 'header.html' %}
 
-<div>
-<canvas id="myChart"></canvas>
-</div>
-  
+{% block javascript %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <script>
-    const ctx = document.getElementById('myChart');
     
     const config = {
         type: 'line',
@@ -17,34 +13,27 @@
                 label: "Данные ЭКГ",
                 data: {{data | tojson}}
             }]
-        },
-        options: {
-            responsive: true,
-            plugins: {
-                legend: {
-                position: 'top',
-                },
-                title: {
-                display: true,
-                text: 'Chart.js Line Chart'
-                }
-            }
         }
     };
 
-    new Chart(ctx, config);
+    window.onload = () => new Chart(document.getElementById('myChart'), config);
   </script>
+{% endblock %}
 
 {% block container %}
+<div>
+<canvas id="myChart"></canvas>
+</div>
+    
 <table class="table">
     <tr>
         <th>Time</th>
         <th>Value</th>
     </tr>
-    {% for val, tm in zip(data, timestamps) %}
+    {% for ind in range(l) %}
     <tr>
-        <td>{{tm}}</td>
-        <td>{{val}}</td>
+        <td>{{timestamps[ind]}}</td>
+        <td>{{data[ind]}}</td>
     </tr>
     {% endfor %}
 </table>

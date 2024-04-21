@@ -253,30 +253,6 @@ def user_info():
         return render_template('user_info_data.html', user=d)
 
 
-@app.route('/users/register/', methods=['POST'])
-@csrf.exempt
-def new_user():
-    data = request.get_json()
-    resp = User.select().where(User.email==data['email'])
-    if resp:
-        app.logger.info("User with provided email already exists")
-    if User.select().where(User.login==data["login"]):
-        return {"error": "login"}, 200
-
-    token = encode_token(
-        data,
-        secret=settings.EMAIL_JWT_KEY, 
-        iss=settings.SERVICE_NAME,
-        exp=time() + settings.EMAIL_LINK_LIFETIME,
-        iat=time()
-    )
-    msg = Message('Confirm Email', sender='iomt.confirmation@gmail.com', recipients=[data['email']])
-    link = url_for('confirm_email', token=token, _external=True)
-    msg.body = 'Your link is {}'.format(link)
-    mail.send(msg)
-    return {"error": ""}, 200
-
-
 @app.route('/<login>/sessions', methods=['GET', 'POST'])
 @csrf.exempt
 def get_sessions(login):
@@ -384,7 +360,9 @@ def graphic():
             data.extend(res.result_rows)
         except Exception as e:
             app.logger.error(traceback.format_exception(e))
-    return render_template('display_data.html', data=data)
+    timestamps = list(x[0] for x in data)
+    data = list(x[1] for x in data)
+    return render_template('display_data.html', data=data, timestamps=timestamps, l=len(data))
 
 
 @app.route('/confirm_email/<token>')
