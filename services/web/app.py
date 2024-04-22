@@ -24,6 +24,8 @@ import datetime
 
 Operator, User, DeviceType, Device, db = models2.Operator, models2.User, models2.DeviceType, models2.Device, models2.db
 
+DISCRETE = 4 / 8388607 / 8
+
 app = Flask(__name__)
 
 """ Код ниже был до мерджа с докером, возможно он там нужен
@@ -68,8 +70,8 @@ CH_HOST = 'clickhouse'
 CH_USER = API_USERNAME
 CH_PASSWORD = API_PASSWORD
 CH_DATABASE = 'IoMT_DB'
-CH_TABLENAME_FORMAT = '{user_id}_{slug}_{freq}'
-CH_SESSIONS_FORMAT = 'sessions_{user_id}_{slug}_{freq}'
+CH_TABLENAME_FORMAT = "'{user_login}/{mac}/{freq}'"
+CH_SESSIONS_FORMAT = "'sessions_{user_login}/{mac}/{freq}'"
 
 
 @app.before_request
@@ -82,7 +84,7 @@ def db_disconnect(exc):
         db.close()
 
 
-def create_file(login, dev_name, start, end):
+def create_file(login, mac, start, end):
     """Generates file with data"""
     clh_client = clickhouse.get_client(
         host=CH_HOST,
@@ -95,8 +97,8 @@ def create_file(login, dev_name, start, end):
     app.logger.info(f"Selecting data in range {start} to {end} from clickhouse")
     for freq in settings.FREQ:
         table_name = CH_TABLENAME_FORMAT.format(
-            user_id=login,
-            slug=dev_name,
+            user_login=login,
+            mac=mac,
             freq=freq
         )
         try:
@@ -273,9 +275,8 @@ def get_sessions(login):
     for dev in devices:
         for freq in settings.FREQ:
             table = CH_SESSIONS_FORMAT.format(
-                user_id=login,
+                user_login=login,
                 mac=dev.mac,
-                slug=dev.device_type.name,
                 freq=freq
             )
             app.logger.info(f"Selecting data from {table}")
@@ -306,9 +307,9 @@ def select_data():
         login = form.user_login.data
         if login not in list((u.login for u in get_allowed_users(current_user))):
             return redirect(url_for('main'))
-        return redirect(url_for('graphic', login=form.user_login.data, dev_name=form.device_name.data,
-                                mac=form.mac.data, start=form.start_date.data.strftime('%Y-%m-%d %H:%M:%S:%f'),
-                                end=form.end_date.data.strftime('%Y-%m-%d %H:%M:%S:%f')))
+        return redirect(url_for('graphic', login=form.user_login.data, freq=form.freq.data,
+                                mac=form.mac.data, start=form.start_date.data.strftime('%Y-%m-%d %H:%M:%S.%f'),
+                                end=form.end_date.data.strftime('%Y-%m-%d %H:%M:%S.%f')))
     return render_template('select_data.html', form=form)
 
 
@@ -321,9 +322,9 @@ def download_data():
         login = form.user_login.data
         if login not in list((u.login for u in get_allowed_users(current_user))):
             return redirect(url_for('main'))
-        filename = create_file(login=form.user_login.data, dev_name=form.device_name.data,
-                               start=form.start_date.data.strftime('%Y-%m-%d %H:%M:%S:%f'),
-                                end=form.end_date.data.strftime('%Y-%m-%d %H:%M:%S:%f'))
+        filename = create_file(login=form.user_login.data, mac=form.mac.data,
+                               start=form.start_date.data.strftime('%Y-%m-%d %H:%M:%S.%f'),
+                                end=form.end_date.data.strftime('%Y-%m-%d %H:%M:%S.%f'))
         return send_file(filename)
     return render_template('select_data.html', form=form)
 
@@ -332,7 +333,8 @@ def download_data():
 @csrf.exempt
 def graphic():
     try:
-        login, dev_name, mac, start, end = request.args["login"], request.args["dev_name"], request.args["mac"], request.args["start"], request.args["end"]
+        login, freq  = request.args["login"], request.args["freq"]
+        mac, start, end = request.args["mac"], request.args["start"], request.args["end"]
     except Exception as e:
         app.logger.error(traceback.format_exception(e))
         return
@@ -351,17 +353,17 @@ def graphic():
     app.logger.info(f"Selecting data in range {start} to {end} from clickhouse")
     for freq in settings.FREQ:
         table_name = CH_TABLENAME_FORMAT.format(
-            user_id=login,
-            slug=dev_name,
+            user_login=login,
+            mac=mac,
             freq=freq
         )
         try:
-            res = clh_client.query(f"""SELECT * FROM {table_name} WHERE timestamp >= '{start[::-1].replace(":", ".")[::-1]}' AND timestamp <= '{end[::-1].replace(":", ".")[::-1]}'""")
+            res = clh_client.query(f"""SELECT * FROM {table_name} WHERE timestamp >= '{start}' AND timestamp <= '{end}'""")
             data.extend(res.result_rows)
         except Exception as e:
             app.logger.error(traceback.format_exception(e))
     timestamps = list(x[0] for x in data)
-    data = list(x[1] for x in data)
+    data = list(x[1]*DISCRETE for x in data)
     return render_template('display_data.html', data=data, timestamps=timestamps, l=len(data))
 
 

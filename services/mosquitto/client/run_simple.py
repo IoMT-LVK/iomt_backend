@@ -6,6 +6,7 @@ from paho.mqtt import subscribe
 from paho.mqtt.client import MQTTv5
 import requests
 import sys
+import traceback
 import clickhouse_connect as clickhouse
 
 API_ADMIN_LOGIN = 'root'
@@ -19,15 +20,15 @@ MQTT_BROKER_HOSTNAME = 'localhost'
 MQTT_BROKER_PORT = 1883
 MQTT_CLIENT_ID = 'DBWriter'
 MQTT_SUBSCRIBE_TOPICS = [
-    'c/#',
+    'ecg/#',
 ]
 
 CH_HOST = 'clickhouse'
 CH_USER = API_USERNAME
 CH_PASSWORD = API_PASSWORD
 CH_DATABASE = 'IoMT_DB'
-CH_TABLENAME_FORMAT = '{user_id}/{slug}/{mac}/{freq}'
-CH_SESSIONS_FORMAT = 'sessions_{user_id}/{slug}/{mac}/{freq}'
+CH_TABLENAME_FORMAT = '{user_id}/{mac}/{freq}'
+CH_SESSIONS_FORMAT = 'sessions_{user_id}/{mac}/{freq}'
 
 RETRY_COUNT = 9
 RETRYBLE = {502}
@@ -94,32 +95,29 @@ def get_token(username, password):
 def process_msg(client, userdata, message):
     client.enable_logger(log)
     # TODO здесь надо бы проверрить что пользователь не пишет в чужую таблицу
-    # c/1/F6:A1:DC:98:19:CF/heartRate/frequency/flag : b'{"value":"67","timestamp":"2023-04-22T11:33:48.825011"}'
-    # flag: {0: begin session, 1: continue session, 2: end session}
-    topic_info = message.topic.split('/', 5)
-    if len(topic_info) != 6:
+    # ecg/1/F6:A1:DC:98:19:CF/frequency/flag : b'{"value":"67","timestamp":"2023-04-22T11:33:48.825011"}'
+    # flag: {0: begin session, 1: continue session, 2: end session, 3: start+end}
+    topic_info = message.topic.split('/', 4)
+    if len(topic_info) != 5:
         log.error(f"Unknown topic format: {message.topic}")
         return
-    _, user_id, mac, dev_name, freq, flag = topic_info
+    _, user_id, mac, freq, flag = topic_info
     data = json.loads(message.payload)
     try:
-        value = float(data['value'])
-    except ValueError:
-        log.error(f"Unknown value type: {value}")
+        data = list((datetime.strptime(x[0], "%Y-%m-%d %H:%M:%S.%f"), int(x[1])) for x in data)
+    except Exception as e:
+        log.error(traceback.format_exception(e))
         return
-    ts = datetime.fromisoformat(data['timestamp'])
 
     # если нет таблицы - создать таблицу
     table = CH_TABLENAME_FORMAT.format(
         user_id=user_id,
         mac=mac,
-        slug=dev_name,
         freq=freq
     )
     sessions_table = CH_SESSIONS_FORMAT.format(
         user_id = user_id,
         mac=mac,
-        slug=dev_name,
         freq=freq
     )
     clh_client = clickhouse.get_client(
@@ -151,31 +149,35 @@ def process_msg(client, userdata, message):
     # записать данные
     clh_client.insert(
         table=f"`{table}`",
-        data=[
-            (ts, value),
-        ],
+        data=data,
         settings={'async_insert': True},
     )
 
-    if flag == 0:
-        user_sessions[sessions_table] = ts
-    if flag == 2:
+    if flag == "0":
+        user_sessions[sessions_table] = data[0][0]
+    if flag == "2":
         if user_sessions.get(sessions_table, None) is None:
             log.info(f"There was no initial packet for {user_id} session")
             return
         clh_client.insert(
             table=f"`{sessions_table}`",
             data=[
-                (user_sessions[sessions_table], ts),
+                (user_sessions[sessions_table], data[0][0]),
             ],
             settings={'async_insert': True},
         )
         del user_sessions[sessions_table]
+    if flag == "3":
+        clh_client.insert(
+            table=f"`{sessions_table}`",
+            data=[
+                (data[0][0], data[-1][0]),
+            ],
+            settings={'async_insert': True},
+        )
 
-    log.info("%s : %s" % (message.topic, message.payload))
     log.info("%s" % client)
     log.info("userdata=%s" % userdata)
-    log.debug(f"{user_id=}\t{mac=}\t{dev_name=}\t{value=}\t{ts=}")
 
 if __name__ == "__main__":
     user_sessions = dict()

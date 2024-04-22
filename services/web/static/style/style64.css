@@ -45,6 +45,18 @@
     float: right;
 }
 
+#start_date {
+    width: 240px;
+    height: 20px;
+	padding: 5px 8px;
+}
+
+#end_date {
+    width: 240px;
+    height: 20px;
+	padding: 5px 8px;
+}
+
 body {
     font: 15px/21px "Lucida Sans", "Lucida Grande", "Lucida Sans Unicode", sans-serif;
 }
@@ -101,7 +113,7 @@ h2 {
 }
 
 .contact_form label {
-    width: 150px;
+    width: 230px;
     margin-top: 3px;
     display: inline-block;
     float: left;

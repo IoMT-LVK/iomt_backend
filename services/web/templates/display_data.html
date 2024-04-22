@@ -13,6 +13,15 @@
                 label: "Данные ЭКГ",
                 data: {{data | tojson}}
             }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            elements: {
+                point: {
+                    radius: 0
+                }
+            }
         }
     };
 
@@ -21,11 +30,11 @@
 {% endblock %}
 
 {% block container %}
-<div>
+<div style="width: 1000px; height: 500px">
 <canvas id="myChart"></canvas>
 </div>
     
-<table class="table">
+<!-- <table class="table">
     <tr>
         <th>Time</th>
         <th>Value</th>
@@ -36,6 +45,6 @@
         <td>{{data[ind]}}</td>
     </tr>
     {% endfor %}
-</table>
+</table> -->
 
 {% endblock %}

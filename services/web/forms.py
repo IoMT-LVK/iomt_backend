@@ -66,8 +66,8 @@ class AddOperator(FlaskForm):
 
 
 class ConnectUser(FlaskForm):
-    operator_login = StringField('Логин', [DataRequired(message="Введите логин оператора")])
-    user_login = StringField('Логин', [DataRequired(message="Введите логин пользователя")])
+    operator_login = StringField('Логин оператора', [DataRequired(message="Введите логин оператора")])
+    user_login = StringField('Логин пользователя', [DataRequired(message="Введите логин пользователя")])
     submit = SubmitField('Привязать')
 
 
@@ -80,9 +80,9 @@ class ConnectDevice(FlaskForm):
 
 class GetData(FlaskForm):
     user_login = StringField('Логин', [DataRequired(message="Введите логин пользователя")])
-    device_name = StringField('Имя устройства', [DataRequired(message="Введите название устройства")])
+    #device_name = StringField('Имя устройства', [DataRequired(message="Введите название устройства")])
     mac = StringField('MAC адрес', [DataRequired(message="Введите mac адрес устройства")])
     freq = StringField('Частота')
-    start_date = DateTimeField('Начало измеряемого периода', format='%Y-%m-%d %H:%M:%S:%f')
-    end_date = DateTimeField('Конец измеряемого периода', format='%Y-%m-%d %H:%M:%S:%f')
+    start_date = DateTimeField('Начало измеряемого периода', [DataRequired(message="Введите mac адрес устройства")], format='%Y-%m-%d %H:%M:%S.%f')
+    end_date = DateTimeField('Конец измеряемого периода', [DataRequired(message="Введите mac адрес устройства")], format='%Y-%m-%d %H:%M:%S.%f')
     submit = SubmitField('Выбрать')

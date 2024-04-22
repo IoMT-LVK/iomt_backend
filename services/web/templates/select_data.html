@@ -13,10 +13,6 @@
         {{ form.user_login }}
     </li>
     <li>
-        {{ form.device_name.label }}
-        {{ form.device_name }}
-    </li>
-    <li>
         {{ form.mac.label }}
         {{ form.mac }}
     </li>
@@ -26,11 +22,11 @@
     </li>
     <li>
         {{ form.start_date.label }}
-        {{ form.start_date }}
+        {{ form.start_date(placeholder="YYYY-MM-DD H:M:S.f") }}
     </li>
     <li>
         {{ form.end_date.label }}
-        {{ form.end_date }}
+        {{ form.end_date(placeholder="YYYY-MM-DD H:M:S.f") }}
     </li>
 </ul>
     {{ form.submit(class_ = "submit") }}
