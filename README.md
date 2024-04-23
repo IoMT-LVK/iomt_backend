@@ -63,7 +63,7 @@ For REST endpoints you can visit [Swagger UI page](https://iomt.lvk.cs.msu.ru/ap
 - **_\<user\_login\>_** - login of user, whose data is sent
 - **_\<MAC\>_** - MAC address of device, which measured the ECG data
 - **_\<frequencty\>_** - frequency of ECG measuring
-- **_\<flag\>_** - frequency of ECG measuring
+- **_\<flag\>_** - flag, needed for managing user's data recording sessions
   - **_flag_** == 0: start of data transission
   - **_flag_** == 1: continue data transmission session
   - **_flag_** == 2: end of data transmission
