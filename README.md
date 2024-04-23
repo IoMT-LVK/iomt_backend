@@ -68,3 +68,9 @@ For REST endpoints you can visit [Swagger UI page](https://iomt.lvk.cs.msu.ru/ap
   - **_flag_** == 1: continue data transmission session
   - **_flag_** == 2: end of data transmission
   - **_flag_** == 3: if data fits one MQTT packet, the flag must be both 0 and 2, therefor for this case flag = 3 was added
+
+### The structure of MQTT data:
+
+MQTT messages must be in a correct json structure. Example:
+
+"[[**_timestamp: DateTime64_**, **_value: int32_**], ...]"
