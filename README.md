@@ -27,9 +27,9 @@ All commands was tested on Linux (Ubuntu-18.04)
 
 # List of available endpoints:
 
-## Endpoints for operator's interface
-
 **BASE URL** = https://iomt.lvk.cs.msu.ru
+
+## Endpoints for operator's interface
 
 - /login/ - login for operator or administrator
 - /users/ - list users, available for current operator (or all users, if operator is administrator)
@@ -64,7 +64,7 @@ For REST endpoints you can visit [Swagger UI page](https://iomt.lvk.cs.msu.ru/ap
 - **_\<MAC\>_** - MAC address of device, which measured the ECG data
 - **_\<frequencty\>_** - frequency of ECG measuring
 - **_\<flag\>_** - frequency of ECG measuring
- - **_flag_** == 0: start of data transission
- - **_flag_** == 1: continue data transmission session
- - **_flag_** == 2: end of data transmission
- - **_flag_** == 3: if data fits one MQTT packet, the flag must be both 0 and 2, therefor for this case flag = 3 was added
+  - **_flag_** == 0: start of data transission
+  - **_flag_** == 1: continue data transmission session
+  - **_flag_** == 2: end of data transmission
+  - **_flag_** == 3: if data fits one MQTT packet, the flag must be both 0 and 2, therefor for this case flag = 3 was added
