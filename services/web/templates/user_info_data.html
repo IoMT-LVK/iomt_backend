@@ -2,6 +2,7 @@
 
 {% block container %}
 
+<div id="box">
 <h2> {{ user.surname }} {{ user.name }} {{ user.patronymic }} </h2>
 
 <p>     Логин: {{ user.login }}</p>
@@ -11,5 +12,6 @@
 <p>     Вес: {{ user.weight }} кг</p>
 <p><a href="/{{ user.login }}/sessions">Посмотреть сессии</a></p>
 <p><a href="/{{ user.login }}/devices">Посмотреть </a></p>
+</div>
 
 {% endblock %}

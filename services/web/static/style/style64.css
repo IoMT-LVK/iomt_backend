@@ -28,6 +28,15 @@
 }
 
 
+#box {
+    box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2);
+    max-width: 400px;
+    text-align: center;
+    padding: 10px;
+    background-color: #7917e233;
+    margin-top: 10px;
+}
+
 /* Change the background color on mouse-over */
 .header a:hover {
     background-color: #ddd;
