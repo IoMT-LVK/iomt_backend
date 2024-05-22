@@ -4,47 +4,49 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <script>
-    
-    const config = {
-        type: 'line',
-        data: {
-            labels: {{timestamps | tojson}},
-            datasets: [{
-                label: "Данные ЭКГ",
-                data: {{data | tojson}}
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            elements: {
-                point: {
-                    radius: 0
+    function create_config(label, data, name) {
+        config = {
+            type: 'line',
+            data: {
+                labels: label,
+                datasets: [{
+                    label: name,
+                    data: data
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                elements: {
+                    point: {
+                        radius: 0
+                    }
+                },
+                scales:{
+                    x: {
+                        ticks: {
+                            display: false
+                        }
+                    }
                 }
             }
-        }
-    };
+        };
+        return config;
+    }
+    config1 = create_config({{timestamps_first | tojson}}, {{data_first | tojson}}, "Данные ЭКГ первого канала");
+    config2 = create_config({{timestamps_second | tojson}}, {{data_second | tojson}}, "Данные ЭКГ второго канала");
 
-    window.onload = () => new Chart(document.getElementById('myChart'), config);
+    window.onload = () => {new Chart(document.getElementById('myChart1'), config1); new Chart(document.getElementById('myChart2'), config2);};
   </script>
 {% endblock %}
 
 {% block container %}
 <div style="width: 1000px; height: 500px">
-<canvas id="myChart"></canvas>
+<canvas id="myChart1"></canvas>
 </div>
-    
-<!-- <table class="table">
-    <tr>
-        <th>Time</th>
-        <th>Value</th>
-    </tr>
-    {% for ind in range(l) %}
-    <tr>
-        <td>{{timestamps[ind]}}</td>
-        <td>{{data[ind]}}</td>
-    </tr>
-    {% endfor %}
-</table> -->
+<div style="width: 1000px; height: 500px; margin-top: 50px;">
+<canvas id="myChart2"></canvas>
+</div>
+
 
 {% endblock %}

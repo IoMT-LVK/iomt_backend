@@ -1,12 +1,10 @@
 from flask import Flask, render_template, request, redirect, session, send_file, jsonify, url_for, send_from_directory
 
 from forms import *
-from blueprints.api import get_clickhouse_data
 from flask_wtf.csrf import CSRFProtect
 import models2
 from werkzeug.security import generate_password_hash
 from flask_login import current_user, login_user, login_required, logout_user, LoginManager
-import auth
 import random
 import csv
 import uuid
@@ -145,16 +143,6 @@ def load_user(login):
         res = x
     app.logger.warning(f"Searching for {res}")
     return res
-
-
-@app.route('/auth/', methods=['POST'])
-@csrf.exempt
-def authenticate():
-    data = request.json
-    if data['login'] and data['password']:
-        confirmed, jwt, code, login = auth.check_user(data['login'], data['password'])
-        return jsonify({'jwt':jwt, "confirmed": confirmed, "login":login}), code
-    return jsonify({}), 403
 
 
 @app.route('/')
@@ -364,19 +352,9 @@ def graphic():
             app.logger.error(traceback.format_exception(e))
     timestamps = list(x[0] for x in data)
     data = list(x[1]*DISCRETE for x in data)
-    return render_template('display_data.html', data=data, timestamps=timestamps, l=len(data))
+    return render_template('display_data.html', data_first=data[::2], timestamps_first=timestamps[::2], 
+                           data_second=data[1::2], timestamps_second=timestamps[1::2], l=len(data))
 
-
-@app.route('/confirm_email/<token>')
-def confirm_email(token):
-    body = decode_token(token, secret=settings.EMAIL_JWT_KEY)
-    body['password_hash'], body['salt'] = hash_password(body['password'])
-    User.create(**body)
-    return '<h1>Email confirmed!</h1>'
-
-from blueprints.api import bp as api_bp
-app.register_blueprint(api_bp)
-csrf.exempt(api_bp)
 
 @app.route('/logout/')
 @login_required
