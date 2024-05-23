@@ -6,6 +6,7 @@ from paho.mqtt import subscribe
 from paho.mqtt.client import MQTTv5
 import requests
 import sys
+import ssl
 import traceback
 import clickhouse_connect as clickhouse
 
@@ -17,7 +18,7 @@ API_BASE = "http://nginx/api/v1"
 
 MQTT_QOS = 2
 MQTT_BROKER_HOSTNAME = 'localhost'
-MQTT_BROKER_PORT = 1883
+MQTT_BROKER_PORT = 8883
 MQTT_CLIENT_ID = 'DBWriter'
 MQTT_SUBSCRIBE_TOPICS = [
     'ecg/#',
@@ -98,13 +99,16 @@ def process_msg(client, userdata, message):
     # ecg/1/F6:A1:DC:98:19:CF/frequency/flag : b'{"value":"67","timestamp":"2023-04-22T11:33:48.825011"}'
     # flag: {0: begin session, 1: continue session, 2: end session, 3: start+end}
     topic_info = message.topic.split('/', 4)
+    log.info(message.topic)
+    log.info(message.payload)
     if len(topic_info) != 5:
         log.error(f"Unknown topic format: {message.topic}")
         return
     _, user_id, mac, freq, flag = topic_info
     data = json.loads(message.payload)
+    data["value"] = data["value"].strip("[]").split(",")
     try:
-        data = list((datetime.strptime(x[0], "%Y-%m-%d %H:%M:%S.%f"), int(x[1])) for x in data)
+        data = list((datetime.strptime(data["timestamp"], "%Y-%m-%dT%H:%M:%S.%f"), int(x)) for x in data["value"])
     except Exception as e:
         log.error(traceback.format_exception(e))
         return
@@ -203,5 +207,5 @@ if __name__ == "__main__":
                 password=token,
             ),
             protocol=MQTTv5,
-            clean_session=None,
+            clean_session=None
         )
