@@ -18,7 +18,7 @@ API_BASE = "http://nginx/api/v1"
 
 MQTT_QOS = 2
 MQTT_BROKER_HOSTNAME = 'localhost'
-MQTT_BROKER_PORT = 8883
+MQTT_BROKER_PORT = 1883
 MQTT_CLIENT_ID = 'DBWriter'
 MQTT_SUBSCRIBE_TOPICS = [
     'ecg/#',
