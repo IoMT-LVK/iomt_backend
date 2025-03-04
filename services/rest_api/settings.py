@@ -1,4 +1,4 @@
-import secrets
+import secrets_ as secrets
 
 SERVICE_NAME = 'IoMT_REST'
 
