@@ -201,3 +201,30 @@ services:
     networks:  # defines connected networks
       - iomt
       - monitoring
+
+  ecg_processor:
+    build:
+      context: ./services/ecg_processor
+    ports:
+      - "8002:80"
+    environment:
+      - CH_HOST=clickhouse
+      - CH_USER=mqttUser
+      - CH_PASSWORD=resUttqm
+      - CH_DATABASE=IoMT_DB
+    depends_on:
+      - clickhouse
+    volumes:
+      - ./services/ecg_processor:/app
+      - ./db:/db  # Для SQLite базы
+
+  ecg_predictor:
+    build:
+      context: ./services/ecg_predictor
+    ports:
+      - "8003:80"
+    volumes:
+      - ./services/ecg_predictor:/app
+      - ./db:/db  # Для доступа к той же SQLite базе
+    depends_on:
+      - ecg_processor
