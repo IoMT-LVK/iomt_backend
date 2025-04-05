@@ -1,17 +1,60 @@
+from datetime import datetime
+import json
+import logging
+import time
+from paho.mqtt import subscribe
+from paho.mqtt.client import MQTTv5
+import requests
+import sys
+import traceback
+import clickhouse_connect as clickhouse
 import numpy as np
 import pandas as pd
-import scipy.signal as sig
-from scipy.signal import find_peaks
-import clickhouse_connect as clickhouse
-from datetime import datetime, timedelta
-import logging
+import sqlite3
 
-# Конфигурация ClickHouse
+# Конфигурация
 CH_HOST = 'clickhouse'
 CH_USER = 'mqttUser'
 CH_PASSWORD = 'resUttqm'
 CH_DATABASE = 'IoMT_DB'
+SQLITE_DB = '/db/ecg.db'
 
+# Настройка логгера
+log = logging.getLogger(__name__)
+def configure_logger(logger):
+    logger.setLevel(logging.DEBUG)
+    handler = logging.StreamHandler(sys.stdout)
+    formatter = logging.Formatter('%(levelname)-5s %(name)-12s [%(asctime)s] %(message)s')
+    logger.addHandler(handler)
+    handler.setFormatter(formatter)
+
+def init_sqlite():
+    """Инициализация базы данных SQLite"""
+    conn = sqlite3.connect(SQLITE_DB)
+    cursor = conn.cursor()
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS ecg_results (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id TEXT NOT NULL,
+            mac TEXT NOT NULL,
+            freq TEXT NOT NULL,
+            bpm INTEGER NOT NULL,
+            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+    conn.commit()
+    conn.close()
+
+def save_to_sqlite(user_id, mac, freq, bpm):
+    """Сохранение результатов в SQLite"""
+    conn = sqlite3.connect(SQLITE_DB)
+    cursor = conn.cursor()
+    cursor.execute(
+        "INSERT INTO ecg_results (user_id, mac, freq, bpm) VALUES (?, ?, ?, ?)",
+        (user_id, mac, freq, bpm)
+    )
+    conn.commit()
+    conn.close()
 
 def get_ecg_data_from_clickhouse(user_id, mac, freq, time_range_min=1):
     """Получает данные ЭКГ из ClickHouse за последние time_range_min минут"""
@@ -32,44 +75,21 @@ def get_ecg_data_from_clickhouse(user_id, mac, freq, time_range_min=1):
         """
         
         result = client.query(query)
-        df = pd.DataFrame(result.result_rows, columns=['timestamp', 'value'])
+        
+        # Преобразуем данные: берем только первый канал ЭКГ (первое значение в списке)
+        data = []
+        for row in result.result_rows:
+            timestamp, values = row
+            if isinstance(values, list) and len(values) > 0:
+                data.append((timestamp, values[0]))  # Берем первое значение
+        
+        df = pd.DataFrame(data, columns=['timestamp', 'value'])
         return df
     except Exception as e:
-        logging.error(f"Error getting data from ClickHouse: {e}")
+        log.error(f"Error getting data from ClickHouse: {e}")
         raise
 
-def process_ecg(user_id, mac, freq):
-    """Обрабатывает данные ЭКГ из ClickHouse и возвращает BPM"""
-    try:
-        # Получаем данные из ClickHouse
-        ecg_data = get_ecg_data_from_clickhouse(user_id, mac, freq)
-        if ecg_data.empty:
-            raise ValueError("No ECG data found in ClickHouse")
-        
-        # Применение фильтров
-        f1 = lpf(ecg_data)
-        f2 = hpf(f1)
-        f3 = deriv(f2)
-        f4 = squaring(f3)
-        window_size = 22
-        f5 = win_sum(f4, window_size)
-
-        # Сглаживание сигнала
-        filter_length = 4
-        moving_average = np.convolve(f5["value"], np.ones(filter_length), mode="same")
-        moving_average /= filter_length
-
-        # Поиск пиков
-        peaks_x, peaks_y = get_peaks(moving_average[0:6000])
-
-        # Вычисление BPM
-        BPM = len(peaks_x)
-        return BPM
-    except Exception as e:
-        logging.error(f"Error processing ECG: {e}")
-        raise
-
-# Функции фильтров и обработки сигнала
+# Ваши оригинальные функции алгоритма Пана-Томпкинса
 def lpf(x):
     y = x.copy()
     for n in x.index:
@@ -123,3 +143,45 @@ def get_peaks(data):
                 peaks_x.append(i)
     peaks_y = [data[index] for index in peaks_x]
     return peaks_x, peaks_y
+
+def process_ecg(user_id, mac, freq):
+    """Обрабатывает данные ЭКГ с использованием алгоритма Пана-Томпкинса"""
+    try:
+        # Получаем данные из ClickHouse (только первый канал)
+        ecg_data = get_ecg_data_from_clickhouse(user_id, mac, freq)
+        if ecg_data.empty:
+            raise ValueError("No ECG data found in ClickHouse")
+        
+        # Применяем алгоритм Пана-Томпкинса
+        f1 = lpf(ecg_data)
+        f2 = hpf(f1)
+        f3 = deriv(f2)
+        f4 = squaring(f3)
+        window_size = 22
+        f5 = win_sum(f4, window_size)
+
+        # Сглаживание сигнала
+        filter_length = 4
+        moving_average = np.convolve(f5["value"], np.ones(filter_length), mode="same")
+        moving_average /= filter_length
+
+        # Поиск пиков
+        peaks_x, peaks_y = get_peaks(moving_average[0:6000])
+
+        # Вычисление BPM
+        if len(peaks_x) < 2:
+            bpm = 0  # Недостаточно пиков для расчета
+        else:
+            # Вычисляем средний интервал между пиками в секундах
+            timestamps = ecg_data['timestamp'].values
+            intervals = np.diff(timestamps[peaks_x].astype(np.int64)) / 1e9
+            mean_interval = np.mean(intervals)
+            bpm = 60 / mean_interval
+        
+        # Сохраняем результат в SQLite
+        save_to_sqlite(user_id, mac, freq, int(round(bpm)))
+        
+        return int(round(bpm))
+    except Exception as e:
+        log.error(f"Error processing ECG: {e}")
+        raise

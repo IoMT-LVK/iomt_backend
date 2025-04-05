@@ -5,3 +5,5 @@ numpy==1.26.4
 scipy==1.12.0
 clickhouse-connect==0.7.5
 python-multipart==0.0.9
+paho-mqtt==1.6.1
+requests==2.31.0
