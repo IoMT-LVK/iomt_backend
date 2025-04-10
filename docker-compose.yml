@@ -216,7 +216,9 @@ services:
       - clickhouse
     volumes:
       - ./services/ecg_processor:/app
-      - ./db:/db  # Для SQLite базы
+      - ./db:/db
+    networks:
+      - iomt
 
   ecg_predictor:
     build:

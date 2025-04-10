@@ -57,7 +57,6 @@ def save_to_sqlite(user_id, mac, freq, bpm):
     conn.close()
 
 def get_ecg_data_from_clickhouse(user_id, mac, freq, time_range_min=1):
-    """Получает данные ЭКГ из ClickHouse за последние time_range_min минут"""
     try:
         client = clickhouse.get_client(
             host=CH_HOST,
@@ -66,17 +65,16 @@ def get_ecg_data_from_clickhouse(user_id, mac, freq, time_range_min=1):
             database=CH_DATABASE
         )
         
-        table_name = f"{user_id}/{mac}/{freq}"
-        query = f"""
-        SELECT timestamp, value 
-        FROM `{table_name}`
-        WHERE timestamp >= now() - INTERVAL {time_range_min} MINUTE
+        # Используем правильные имена столбцов из таблицы
+        query = """
+        SELECT timestamp, values 
+        FROM ecg_data
         ORDER BY timestamp
         """
         
         result = client.query(query)
         
-        # Преобразуем данные: берем только первый канал ЭКГ (первое значение в списке)
+        # Преобразуем данные: берем первый канал ЭКГ (первое значение в массиве)
         data = []
         for row in result.result_rows:
             timestamp, values = row
@@ -85,6 +83,7 @@ def get_ecg_data_from_clickhouse(user_id, mac, freq, time_range_min=1):
         
         df = pd.DataFrame(data, columns=['timestamp', 'value'])
         return df
+        
     except Exception as e:
         log.error(f"Error getting data from ClickHouse: {e}")
         raise
