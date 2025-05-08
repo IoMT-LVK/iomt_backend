@@ -178,7 +178,12 @@ services:
       CLICKHOUSE_PASSWORD: "resUttqm"
     networks:
       - iomt
-    
+    healthcheck:
+      test: ["CMD-SHELL", "clickhouse-client --query='SELECT 1'"]
+      interval: 5s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
     ulimits:
       nproc: 65535
       nofile:
@@ -227,6 +232,11 @@ services:
       - "8003:80"
     volumes:
       - ./services/ecg_predictor:/app
-      - ./db:/db  # Для доступа к той же SQLite базе
+      - ./db:/db
     depends_on:
-      - ecg_processor
+      clickhouse:
+        condition: service_healthy
+      ecg_processor:
+        condition: service_started
+    networks:
+      - iomt

@@ -1,5 +1,5 @@
 import pandas as pd
-import sqlite3
+import clickhouse_connect
 from statsmodels.tsa.arima.model import ARIMA
 from datetime import datetime, timedelta
 import numpy as np
@@ -8,70 +8,83 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-def load_data(user_id=None, mac=None, freq=None):
-    """Загружает данные из SQLite с возможностью фильтрации"""
+# Конфигурация ClickHouse
+CH_HOST = 'clickhouse'
+CH_USER = 'mqttUser'
+CH_PASSWORD = 'resUttqm'
+CH_DATABASE = 'IoMT_DB'
+
+
+def sanitize_mac(mac: str) -> str:
+    """Преобразует MAC-адрес в формат, подходящий для имени таблицы"""
+    return mac.replace(':', '_')
+
+def get_ch_client():
+    """Возвращает клиент ClickHouse"""
+    return clickhouse_connect.get_client(
+        host=CH_HOST,
+        user=CH_USER,
+        password=CH_PASSWORD,
+        database=CH_DATABASE
+    )
+
+def load_user_data(user_id: str, mac: str, freq: int, days: int = 60):
+    """Загружает данные пользователя из таблицы устройства"""
     try:
-        logger.info("Загрузка данных из SQLite...")
-        conn = sqlite3.connect('/db/ecg.db')
+        client = get_ch_client()
+        table_name = f"{user_id}_{sanitize_mac(mac)}_{freq}"
         
-        query = "SELECT created_at, bpm FROM ecg_results"
-        params = []
+        query = f"""
+        SELECT 
+            timestamp,
+            values[1] as value  # Извлекаем первое значение из массива
+        FROM `{table_name}`
+        WHERE timestamp >= now() - INTERVAL {days} DAY
+        ORDER BY timestamp
+        """
+
+        result = client.query(query)
+        df = pd.DataFrame(result.result_rows, columns=['timestamp', 'value'])
+        df['timestamp'] = pd.to_datetime(df['timestamp'])
         
-        if user_id:
-            query += " WHERE user_id = ?"
-            params.append(user_id)
-            if mac:
-                query += " AND mac = ?"
-                params.append(mac)
-                if freq:
-                    query += " AND freq = ?"
-                    params.append(freq)
-        
-        query += " ORDER BY created_at"
-        
-        df = pd.read_sql(query, conn, parse_dates=['created_at'], params=params)
-        conn.close()
+        logger.info(f"Loaded {len(df)} ECG samples from {table_name}")
         return df
+        
     except Exception as e:
-        logger.error(f"Ошибка при загрузке данных: {e}")
-        raise
+        logger.error(f"Error loading ECG data: {e}")
+        return pd.DataFrame()
 
-
-def predict_next_session():
-    """Предсказывает время следующего сеанса."""
+def predict_user_next_session(user_id: str, mac: str, freq: int):
     try:
-        df = load_data()
-
+        # Загрузка данных за 60 дней
+        df = load_user_data(user_id, mac, freq, days=60)
+        print(df)
+        
         if df.empty:
-            logger.warning("Нет данных для предсказания.")
-            raise ValueError("Нет данных для предсказания.")
+            logger.warning("Недостаточно данных")
+            return datetime.now() + timedelta(hours=1)
 
-        if df['bpm'].isnull().any() or np.isinf(df['bpm']).any():
-            logger.warning("Обнаружены некорректные данные (NaN или inf). Очистка данных.")
-            df = df.dropna(subset=['bpm'])
-            df = df[~np.isinf(df['bpm'])]
+        # Подготовка данных для ARIMAX
+        df["time_diff_min"] = df["timestamp"].diff().dt.total_seconds() / 60
+        df = df.dropna(subset=["time_diff_min", "bpm"])
+        
+        exog = df[["bpm"]].values  # Экзогенная переменная (пульс)
+        y = df["time_diff_min"].values  # Интервалы между замерами
 
-        if df.empty:
-            logger.error("Нет корректных данных для предсказания после очистки.")
-            raise ValueError("Нет корректных данных для предсказания.")
-
-        logger.info("Подготовка данных для ARIMA...")
-        df = df.set_index('created_at')
-        df = df.resample('1min').ffill()
-
-        logger.info("Построение модели ARIMA...")
-        model = ARIMA(df['bpm'], order=(1, 1, 1))
+        # Обучение ARIMAX
+        model = ARIMA(
+            endog=y,
+            exog=exog,
+            order=(2, 1, 1) 
+        )
         model_fit = model.fit()
 
-        logger.info("Прогнозирование следующего значения...")
-        forecast = model_fit.forecast(steps=1)
-        next_bpm = forecast[0]
+        last_bpm = df["bpm"].iloc[-1]
+        forecast_diff = model_fit.forecast(steps=1, exog=[last_bpm])
+        next_session = df["timestamp"].iloc[-1] + timedelta(minutes=forecast_diff[0])
 
-        logger.info("Предсказание времени следующего сеанса...")
-        last_time = df.index[-1]
-        next_session_time = last_time + timedelta(minutes=30)
+        return next_session
 
-        return next_session_time
     except Exception as e:
-        logger.error(f"Ошибка при предсказании следующего сеанса: {e}")
-        raise
+        logger.error(f"Ошибка: {e}")
+        return datetime.now() + timedelta(hours=1)
