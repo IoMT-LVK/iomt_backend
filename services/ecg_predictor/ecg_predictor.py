@@ -29,62 +29,84 @@ def get_ch_client():
     )
 
 def load_user_data(user_id: str, mac: str, freq: int, days: int = 60):
-    """Загружает данные пользователя из таблицы устройства"""
+    """Загружает данные пользователя из таблицы с результатами"""
     try:
         client = get_ch_client()
-        table_name = f"{user_id}_{sanitize_mac(mac)}_{freq}"
         
+        # Проверяем существование таблицы
+        if not client.command(f"EXISTS TABLE ecg_summary_results"):
+            logger.warning("Table ecg_summary_results does not exist")
+            return pd.DataFrame(columns=['timestamp', 'bpm'])
+            
         query = f"""
         SELECT 
             timestamp,
-            values[1] as value  # Извлекаем первое значение из массива
-        FROM `{table_name}`
-        WHERE timestamp >= now() - INTERVAL {days} DAY
+            bpm
+        FROM ecg_summary_results
+        WHERE 
+            user_id = '{user_id}' AND
+            mac = '{mac}' AND
+            freq = {freq} AND
+            timestamp >= now() - INTERVAL {days} DAY
         ORDER BY timestamp
         """
 
         result = client.query(query)
-        df = pd.DataFrame(result.result_rows, columns=['timestamp', 'value'])
+        
+        if not result.result_rows:
+            logger.warning("No data found in summary table")
+            return pd.DataFrame(columns=['timestamp', 'bpm'])
+        
+        df = pd.DataFrame(result.result_rows, columns=['timestamp', 'bpm'])
         df['timestamp'] = pd.to_datetime(df['timestamp'])
         
-        logger.info(f"Loaded {len(df)} ECG samples from {table_name}")
+        logger.info(f"Loaded {len(df)} ECG results from summary table")
         return df
         
     except Exception as e:
-        logger.error(f"Error loading ECG data: {e}")
-        return pd.DataFrame()
+        logger.error(f"Error loading ECG summary data: {e}")
+        return pd.DataFrame(columns=['timestamp', 'bpm'])
 
 def predict_user_next_session(user_id: str, mac: str, freq: int):
     try:
-        # Загрузка данных за 60 дней
+        # Загрузка данных за последние 60 дней
         df = load_user_data(user_id, mac, freq, days=60)
+
         print(df)
         
-        if df.empty:
-            logger.warning("Недостаточно данных")
+        if df.empty or len(df) < 5:  # Минимум 5 точек для прогноза
+            logger.warning("Недостаточно данных для прогноза")
             return datetime.now() + timedelta(hours=1)
 
-        # Подготовка данных для ARIMAX
-        df["time_diff_min"] = df["timestamp"].diff().dt.total_seconds() / 60
-        df = df.dropna(subset=["time_diff_min", "bpm"])
+        # Создаем временные метки и интервалы
+        df = df.sort_values('timestamp')
+        df['time_diff'] = df['timestamp'].diff().dt.total_seconds() / 60  # в минутах
+        df = df.dropna()
         
-        exog = df[["bpm"]].values  # Экзогенная переменная (пульс)
-        y = df["time_diff_min"].values  # Интервалы между замерами
-
-        # Обучение ARIMAX
-        model = ARIMA(
-            endog=y,
-            exog=exog,
-            order=(2, 1, 1) 
-        )
-        model_fit = model.fit()
-
-        last_bpm = df["bpm"].iloc[-1]
-        forecast_diff = model_fit.forecast(steps=1, exog=[last_bpm])
-        next_session = df["timestamp"].iloc[-1] + timedelta(minutes=forecast_diff[0])
-
+        # Используем последние 10 точек для прогноза
+        last_points = df.tail(10)
+        
+        # Простая линейная регрессия для прогноза следующего интервала
+        X = np.arange(len(last_points)).reshape(-1, 1)
+        y = last_points['time_diff'].values
+        
+        if len(y) < 2:
+            return datetime.now() + timedelta(hours=1)
+            
+        # Прогнозируем следующий интервал
+        next_interval = np.mean(y[-3:])  # Среднее последних 3 интервалов
+        
+        # Рассчитываем время следующей сессии
+        last_time = df['timestamp'].iloc[-1]
+        next_session = last_time + timedelta(minutes=next_interval)
+        
+        # Ограничиваем разумными пределами (не раньше чем через 10 минут)
+        min_next_time = datetime.now() + timedelta(minutes=10)
+        if next_session < min_next_time:
+            next_session = min_next_time
+            
         return next_session
 
     except Exception as e:
-        logger.error(f"Ошибка: {e}")
+        logger.error(f"Ошибка прогнозирования: {e}")
         return datetime.now() + timedelta(hours=1)

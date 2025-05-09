@@ -81,25 +81,40 @@ def ensure_ecg_table_exists(user_id: str, mac: str, freq: int):
         raise
 
 def ensure_results_table_exists():
-    """Создает таблицу для хранения результатов обработки ЭКГ"""
+    """Создает таблицы для хранения результатов обработки ЭКГ"""
     try:
         client = get_ch_client()
         
-        create_table_query = """
-        CREATE TABLE IF NOT EXISTS ecg_processed_results
+        # Таблица для сводных результатов (пульс)
+        create_summary_table = """
+        CREATE TABLE IF NOT EXISTS ecg_summary_results
         (
+            timestamp DateTime,
+            session_date Date DEFAULT toDate(timestamp),
             user_id String,
             mac String,
             freq Int32,
-            bpm Float32,
-            timestamp DateTime,
-            session_date Date DEFAULT toDate(timestamp)
+            bpm Float32
         ) ENGINE = MergeTree()
         ORDER BY (user_id, mac, session_date, timestamp)
         """
+        client.command(create_summary_table)
+        log.info("Ensured ecg_summary_results table exists")
         
-        client.command(create_table_query)
-        log.info("Ensured ecg_processed_results table exists")
+        # Таблица для хранения сырых данных (если нужно)
+        create_raw_table = """
+        CREATE TABLE IF NOT EXISTS ecg_raw_data
+        (
+            timestamp DateTime,
+            user_id String,
+            mac String,
+            freq Int32,
+            values Array(Float32)
+        ) ENGINE = MergeTree()
+        ORDER BY (user_id, mac, timestamp)
+        """
+        client.command(create_raw_table)
+        log.info("Ensured ecg_raw_data table exists")
         
     except Exception as e:
         log.error(f"Results table creation error: {e}")
@@ -168,19 +183,21 @@ def save_to_sqlite(user_id: str, mac: str, freq: int, bpm: int):
         log.error(f"SQLite save error: {e}")
         raise
 
+
+
 def save_to_clickhouse(user_id: str, mac: str, freq: int, bpm: float):
     """Сохранение результатов в ClickHouse"""
     try:
         client = get_ch_client()
         
         query = """
-        INSERT INTO ecg_processed_results 
+        INSERT INTO ecg_summary_results 
         (user_id, mac, freq, bpm, timestamp)
         VALUES (%s, %s, %s, %s, now())
         """
         
         client.command(query, [user_id, mac, freq, bpm])
-        log.info(f"Saved result to ClickHouse: user={user_id}, bpm={bpm}")
+        log.info(f"Saved result to ClickHouse summary: user={user_id}, bpm={bpm}")
         
     except Exception as e:
         log.error(f"ClickHouse save error: {e}")
