@@ -8,7 +8,6 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Конфигурация ClickHouse
 CH_HOST = 'clickhouse'
 CH_USER = 'mqttUser'
 CH_PASSWORD = 'resUttqm'
@@ -16,11 +15,9 @@ CH_DATABASE = 'IoMT_DB'
 
 
 def sanitize_mac(mac: str) -> str:
-    """Преобразует MAC-адрес в формат, подходящий для имени таблицы"""
     return mac.replace(':', '_')
 
 def get_ch_client():
-    """Возвращает клиент ClickHouse"""
     return clickhouse_connect.get_client(
         host=CH_HOST,
         user=CH_USER,
@@ -29,11 +26,9 @@ def get_ch_client():
     )
 
 def load_user_data(user_id: str, mac: str, freq: int, days: int = 60):
-    """Загружает данные пользователя из таблицы с результатами"""
     try:
         client = get_ch_client()
         
-        # Проверяем существование таблицы
         if not client.command(f"EXISTS TABLE ecg_summary_results"):
             logger.warning("Table ecg_summary_results does not exist")
             return pd.DataFrame(columns=['timestamp', 'bpm'])
@@ -71,42 +66,43 @@ def predict_user_next_session(user_id: str, mac: str, freq: int):
     try:
         # Загрузка данных за последние 60 дней
         df = load_user_data(user_id, mac, freq, days=60)
-
-        print(df)
         
-        if df.empty or len(df) < 5:  # Минимум 5 точек для прогноза
+        if df.empty or len(df) < 10:  # Минимум 10 точек для ARIMAX
             logger.warning("Недостаточно данных для прогноза")
             return datetime.now() + timedelta(hours=1)
 
-        # Создаем временные метки и интервалы
+        # Подготовка данных
         df = df.sort_values('timestamp')
         df['time_diff'] = df['timestamp'].diff().dt.total_seconds() / 60  # в минутах
         df = df.dropna()
         
-        # Используем последние 10 точек для прогноза
-        last_points = df.tail(10)
+        data = df.tail(30).copy()
         
-        # Простая линейная регрессия для прогноза следующего интервала
-        X = np.arange(len(last_points)).reshape(-1, 1)
-        y = last_points['time_diff'].values
+        y = data['time_diff'].values
+        X = data['bpm'].values.reshape(-1, 1)
         
-        if len(y) < 2:
-            return datetime.now() + timedelta(hours=1)
-            
-        # Прогнозируем следующий интервал
-        next_interval = np.mean(y[-3:])  # Среднее последних 3 интервалов
+        y_train, y_test = y[:-1], y[-1]
+        X_train, X_test = X[:-1], X[-1]
         
-        # Рассчитываем время следующей сессии
-        last_time = df['timestamp'].iloc[-1]
+        order = (1, 0, 1)  # (p, d, q)
+        
+        model = ARIMA(endog=y_train, exog=X_train, order=order)
+        model_fit = model.fit()
+        
+        next_interval = model_fit.forecast(exog=X_test.reshape(1, -1))[0]
+        
+        #next_interval = max(10, min(next_interval, 24 * 60))
+        
+        last_time = data['timestamp'].iloc[-1]
         next_session = last_time + timedelta(minutes=next_interval)
         
-        # Ограничиваем разумными пределами (не раньше чем через 10 минут)
         min_next_time = datetime.now() + timedelta(minutes=10)
         if next_session < min_next_time:
             next_session = min_next_time
             
+        logger.info(f"Прогнозируемое время следующей сессии: {next_session}")
         return next_session
 
     except Exception as e:
-        logger.error(f"Ошибка прогнозирования: {e}")
+        logger.error(f"Ошибка прогнозирования ARIMAX: {e}")
         return datetime.now() + timedelta(hours=1)

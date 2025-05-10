@@ -7,14 +7,12 @@ import clickhouse_connect
 import sqlite3
 import re
 
-# Конфигурация ClickHouse
 CH_HOST = 'clickhouse'
 CH_USER = 'mqttUser'
 CH_PASSWORD = 'resUttqm'
 CH_DATABASE = 'IoMT_DB'
 SQLITE_DB = '/db/ecg.db'
 
-# Настройка логгера
 log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
 handler = logging.StreamHandler()
@@ -23,7 +21,6 @@ handler.setFormatter(formatter)
 log.addHandler(handler)
 
 def get_ch_client():
-    """Возвращает клиент ClickHouse"""
     return clickhouse_connect.get_client(
         host=CH_HOST,
         user=CH_USER,
@@ -32,11 +29,9 @@ def get_ch_client():
     )
 
 def sanitize_table_name(mac: str) -> str:
-    """Очистка MAC-адреса для использования в имени таблицы"""
     return re.sub(r'[^a-zA-Z0-9_]', '_', mac)
 
 def init_sqlite():
-    """Инициализация SQLite"""
     try:
         conn = sqlite3.connect(SQLITE_DB)
         cursor = conn.cursor()
@@ -58,7 +53,6 @@ def init_sqlite():
         raise
 
 def ensure_ecg_table_exists(user_id: str, mac: str, freq: int):
-    """Проверка и создание таблицы для устройства, если её нет"""
     try:
         client = get_ch_client()
         sanitized_mac = sanitize_table_name(mac)
@@ -81,11 +75,9 @@ def ensure_ecg_table_exists(user_id: str, mac: str, freq: int):
         raise
 
 def ensure_results_table_exists():
-    """Создает таблицы для хранения результатов обработки ЭКГ"""
     try:
         client = get_ch_client()
         
-        # Таблица для сводных результатов (пульс)
         create_summary_table = """
         CREATE TABLE IF NOT EXISTS ecg_summary_results
         (
@@ -101,7 +93,7 @@ def ensure_results_table_exists():
         client.command(create_summary_table)
         log.info("Ensured ecg_summary_results table exists")
         
-        # Таблица для хранения сырых данных (если нужно)
+        # Таблица для хранения сырых данных
         create_raw_table = """
         CREATE TABLE IF NOT EXISTS ecg_raw_data
         (
@@ -127,12 +119,10 @@ def get_ecg_data_from_clickhouse(user_id: str, mac: str, freq: int, time_range_m
         sanitized_mac = sanitize_table_name(mac)
         table_name = f"{user_id}_{sanitized_mac}_{freq}"
         
-        # Добавим проверку существования таблицы
         if not client.command(f"EXISTS TABLE `{table_name}`"):
             log.error(f"Table {table_name} does not exist")
             return pd.DataFrame(columns=['timestamp', 'value'])
         
-        # Получаем крайние временные метки из таблицы
         time_bounds = client.query(f"""
         SELECT min(timestamp) as min_time, max(timestamp) as max_time 
         FROM `{table_name}`
@@ -140,7 +130,6 @@ def get_ecg_data_from_clickhouse(user_id: str, mac: str, freq: int, time_range_m
         
         log.info(f"Time bounds in table {table_name}: {time_bounds[0]} to {time_bounds[1]}")
         
-        # Берем все доступные данные
         query = f"""
         SELECT timestamp, values 
         FROM `{table_name}`
@@ -168,7 +157,6 @@ def get_ecg_data_from_clickhouse(user_id: str, mac: str, freq: int, time_range_m
         return pd.DataFrame(columns=['timestamp', 'value'])
 
 def save_to_sqlite(user_id: str, mac: str, freq: int, bpm: int):
-    """Сохранение результатов в SQLite"""
     try:
         conn = sqlite3.connect(SQLITE_DB)
         cursor = conn.cursor()
@@ -186,7 +174,6 @@ def save_to_sqlite(user_id: str, mac: str, freq: int, bpm: int):
 
 
 def save_to_clickhouse(user_id: str, mac: str, freq: int, bpm: float):
-    """Сохранение результатов в ClickHouse"""
     try:
         client = get_ch_client()
         
@@ -205,7 +192,6 @@ def save_to_clickhouse(user_id: str, mac: str, freq: int, bpm: float):
 
 # Фильтры обработки сигнала
 def lpf(x):
-    """Низкочастотный фильтр"""
     y = x.copy()
     values = y['value'].values
     for n in range(12, len(values)):
@@ -213,7 +199,6 @@ def lpf(x):
     return y
 
 def hpf(x):
-    """Высокочастотный фильтр"""
     y = x.copy()
     values = y['value'].values
     for n in range(32, len(values)):
@@ -221,31 +206,25 @@ def hpf(x):
     return y
 
 def deriv(x):
-    """Улучшенный дифференциатор с правильной обработкой размеров"""
     y = x.copy()
-    if len(y) < 5:  # Минимум 5 точек для вычисления производной
+    if len(y) < 5: 
         y['value'] = 0.0
         return y
     
-    # Создаем массив для результатов того же размера, что и входные данные
     derivative = np.zeros(len(y))
     
-    # Вычисляем производную для центральных точек
     values = y['value'].values
     derivative[4:-4] = (2*values[4:-4] + values[3:-5] - values[1:-7] - 2*values[:-8]) / 4
     
-    # Граничные точки оставляем нулями или можно использовать односторонние разности
     y['value'] = derivative
     return y
 
 def squaring(x):
-    """Возведение в квадрат"""
     y = x.copy()
     y['value'] = y['value'] ** 2
     return y
 
 def win_sum(x, window_size=22):
-    """Скользящее среднее"""
     y = x.copy()
     l = max(1, window_size // 5)
     values = x['value'].values
@@ -255,25 +234,23 @@ def win_sum(x, window_size=22):
     return y
 
 def get_peaks(signal, fs=200):
-    """Улучшенный детектор пиков с адаптивным порогом"""
     if len(signal) < 10:
         return []
     
-    # Адаптивный порог (уменьшаем множитель с 3 до 2)
+    # Адаптивный порог
     median = np.median(signal)
     mad = 1.4826 * np.median(np.abs(signal - median))
-    threshold = median + 2 * mad  # Было 3, стало 2
+    threshold = median + 2 * mad
     
-    # Поиск пиков с проверкой минимального интервала
     peaks = []
-    min_interval = int(0.3 * fs)  # Минимум 300 мс между пиками
+    min_interval = int(0.3 * fs)
     
     for i in range(1, len(signal)-1):
         if signal[i] > threshold and signal[i] > signal[i-1] and signal[i] > signal[i+1]:
             if not peaks or (i - peaks[-1]) >= min_interval:
                 peaks.append(i)
     
-    # Если пиков слишком мало, пробуем понизить порог
+
     if len(peaks) < 2:
         threshold = median + 1.5 * mad
         peaks = []
@@ -287,15 +264,12 @@ def get_peaks(signal, fs=200):
 def process_ecg(user_id: str, mac: str, freq: int):
     """Обработка ЭКГ с улучшенной обработкой ошибок"""
     try:
-        # Инициализация БД
         init_sqlite()
         ensure_ecg_table_exists(user_id, mac, freq)
         ensure_results_table_exists()
         
-        # Получение данных
         ecg_data = get_ecg_data_from_clickhouse(user_id, mac, freq)
         
-        # Проверка достаточности данных
         if len(ecg_data) < 100:
             log.warning(f"Insufficient data samples: {len(ecg_data)} (minimum 100 required)")
             save_to_sqlite(user_id, mac, freq, -1)
@@ -305,14 +279,12 @@ def process_ecg(user_id: str, mac: str, freq: int):
         log.info(f"Processing {len(ecg_data)} samples with freq {freq} Hz")
         
         try:
-            # Обработка сигнала с проверкой на каждом этапе
             filtered = lpf(ecg_data)
             filtered = hpf(filtered)
-            filtered = deriv(filtered)  # Используем новую версию функции
+            filtered = deriv(filtered)
             filtered = squaring(filtered)
             filtered = win_sum(filtered, window_size=int(0.15 * freq))
             
-            # Детекция пиков
             peaks = get_peaks(filtered['value'].values, fs=freq)
             
             if len(peaks) < 2:
@@ -334,7 +306,6 @@ def process_ecg(user_id: str, mac: str, freq: int):
             log.error(f"Signal processing error: {str(processing_error)}")
             bpm = -2
         
-        # Сохранение результатов
         save_to_sqlite(user_id, mac, freq, int(round(bpm)))
         save_to_clickhouse(user_id, mac, freq, float(bpm))
         

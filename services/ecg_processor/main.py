@@ -30,13 +30,11 @@ class ECGResult(BaseModel):
     created_at: str
 
 def get_db_connection():
-    """Создание соединения с SQLite"""
     conn = sqlite3.connect('/db/ecg.db')
     conn.row_factory = sqlite3.Row  # Для доступа к полям по имени
     return conn
 
 def init_db():
-    """Инициализация базы данных SQLite для хранения результатов"""
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -60,14 +58,11 @@ def init_db():
 
 @app.on_event("startup")
 async def startup_event():
-    """Инициализация БД при старте приложения"""
     init_db()
 
 @app.post("/process-ecg/", response_model=Dict[str, int])
 async def process_ecg_endpoint(request: ECGRequest):
     """
-    Обработка ЭКГ данных и сохранение результатов
-    
     - **user_id**: ID пользователя
     - **mac**: MAC-адрес устройства
     - **freq**: Частота дискретизации ЭКГ (в Гц)
@@ -114,9 +109,7 @@ async def process_ecg_endpoint(request: ECGRequest):
 @app.get("/results/", response_model=List[ECGResult])
 async def get_results(limit: int = 100):
     """
-    Получение последних результатов обработки ЭКГ
-    
-    - **limit**: Максимальное количество возвращаемых записей (по умолчанию 100)
+    - **limit**: Максимальное количество возвращаемых записей
     """
     try:
         conn = get_db_connection()
@@ -140,12 +133,6 @@ async def get_results(limit: int = 100):
 
 @app.get("/results/{user_id}", response_model=List[ECGResult])
 async def get_user_results(user_id: str, limit: int = 100):
-    """
-    Получение результатов обработки ЭКГ для конкретного пользователя
-    
-    - **user_id**: ID пользователя
-    - **limit**: Максимальное количество возвращаемых записей (по умолчанию 100)
-    """
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
