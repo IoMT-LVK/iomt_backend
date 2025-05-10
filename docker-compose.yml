@@ -233,6 +233,13 @@ services:
     volumes:
       - ./services/ecg_predictor:/app
       - ./db:/db
+      - ./firebase_credentials:/app/credentials  # Монтируем директорию с credentials
+    environment:
+      - FIREBASE_CREDENTIALS_PATH=/app/credentials/serviceAccountKey.json
+      - CH_HOST=clickhouse
+      - CH_USER=mqttUser
+      - CH_PASSWORD=resUttqm
+      - CH_DATABASE=IoMT_DB
     depends_on:
       clickhouse:
         condition: service_healthy

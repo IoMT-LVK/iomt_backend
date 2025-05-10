@@ -9,4 +9,6 @@ RUN pip install --upgrade pip && \
 
 COPY . .
 
+VOLUME /app/credentials
+
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "80"]

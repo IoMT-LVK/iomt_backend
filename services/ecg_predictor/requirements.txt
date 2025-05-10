@@ -4,3 +4,5 @@ pandas==2.2.1
 numpy==1.26.4
 statsmodels==0.14.1
 clickhouse-connect==0.7.5
+firebase-admin
+python-multipart

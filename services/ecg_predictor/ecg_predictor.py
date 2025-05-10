@@ -64,14 +64,12 @@ def load_user_data(user_id: str, mac: str, freq: int, days: int = 60):
 
 def predict_user_next_session(user_id: str, mac: str, freq: int):
     try:
-        # Загрузка данных за последние 60 дней
         df = load_user_data(user_id, mac, freq, days=60)
         
-        if df.empty or len(df) < 10:  # Минимум 10 точек для ARIMAX
+        if df.empty or len(df) < 10:
             logger.warning("Недостаточно данных для прогноза")
             return datetime.now() + timedelta(hours=1)
 
-        # Подготовка данных
         df = df.sort_values('timestamp')
         df['time_diff'] = df['timestamp'].diff().dt.total_seconds() / 60  # в минутах
         df = df.dropna()
