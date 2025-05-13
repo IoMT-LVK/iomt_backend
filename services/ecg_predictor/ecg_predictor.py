@@ -65,9 +65,11 @@ def load_user_data(user_id: str, mac: str, freq: int, days: int = 60):
 def predict_user_next_session(user_id: str, mac: str, freq: int):
     try:
         df = load_user_data(user_id, mac, freq, days=60)
+        print(df)
         
         if df.empty or len(df) < 10:
             logger.warning("Недостаточно данных для прогноза")
+            print(datetime.now())
             return datetime.now() + timedelta(hours=1)
 
         df = df.sort_values('timestamp')

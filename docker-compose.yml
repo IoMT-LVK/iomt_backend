@@ -233,7 +233,7 @@ services:
     volumes:
       - ./services/ecg_predictor:/app
       - ./db:/db
-      - ./firebase_credentials:/app/credentials  # Монтируем директорию с credentials
+      - ./firebase_credentials:/app/credentials
     environment:
       - FIREBASE_CREDENTIALS_PATH=/app/credentials/serviceAccountKey.json
       - CH_HOST=clickhouse

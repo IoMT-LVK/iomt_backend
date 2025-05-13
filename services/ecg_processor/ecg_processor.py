@@ -4,12 +4,14 @@ import traceback
 import numpy as np
 import pandas as pd
 import clickhouse_connect
+import sqlite3
 import re
 
 CH_HOST = 'clickhouse'
 CH_USER = 'mqttUser'
 CH_PASSWORD = 'resUttqm'
 CH_DATABASE = 'IoMT_DB'
+SQLITE_DB = '/db/ecg.db'
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
@@ -28,6 +30,27 @@ def get_ch_client():
 
 def sanitize_table_name(mac: str) -> str:
     return re.sub(r'[^a-zA-Z0-9_]', '_', mac)
+
+def init_sqlite():
+    try:
+        conn = sqlite3.connect(SQLITE_DB)
+        cursor = conn.cursor()
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS ecg_results (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id TEXT NOT NULL,
+                mac TEXT NOT NULL,
+                freq INTEGER NOT NULL,
+                bpm INTEGER NOT NULL,
+                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+        conn.commit()
+        conn.close()
+        log.info("SQLite database initialized")
+    except Exception as e:
+        log.error(f"SQLite init error: {e}")
+        raise
 
 def ensure_ecg_table_exists(user_id: str, mac: str, freq: int):
     try:
@@ -70,6 +93,7 @@ def ensure_results_table_exists():
         client.command(create_summary_table)
         log.info("Ensured ecg_summary_results table exists")
         
+        # Таблица для хранения сырых данных
         create_raw_table = """
         CREATE TABLE IF NOT EXISTS ecg_raw_data
         (
@@ -131,6 +155,23 @@ def get_ecg_data_from_clickhouse(user_id: str, mac: str, freq: int, time_range_m
     except Exception as e:
         log.error(f"ClickHouse error: {e}\n{traceback.format_exc()}")
         return pd.DataFrame(columns=['timestamp', 'value'])
+
+def save_to_sqlite(user_id: str, mac: str, freq: int, bpm: int):
+    try:
+        conn = sqlite3.connect(SQLITE_DB)
+        cursor = conn.cursor()
+        cursor.execute(
+            "INSERT INTO ecg_results (user_id, mac, freq, bpm) VALUES (?, ?, ?, ?)",
+            (user_id, mac, freq, bpm)
+        )
+        conn.commit()
+        conn.close()
+        log.info(f"Saved result to SQLite: user={user_id}, bpm={bpm}")
+    except Exception as e:
+        log.error(f"SQLite save error: {e}")
+        raise
+
+
 
 def save_to_clickhouse(user_id: str, mac: str, freq: int, bpm: float):
     try:
@@ -196,6 +237,7 @@ def get_peaks(signal, fs=200):
     if len(signal) < 10:
         return []
     
+    # Адаптивный порог
     median = np.median(signal)
     mad = 1.4826 * np.median(np.abs(signal - median))
     threshold = median + 2 * mad
@@ -222,6 +264,7 @@ def get_peaks(signal, fs=200):
 def process_ecg(user_id: str, mac: str, freq: int):
     """Обработка ЭКГ с улучшенной обработкой ошибок"""
     try:
+        init_sqlite()
         ensure_ecg_table_exists(user_id, mac, freq)
         ensure_results_table_exists()
         
@@ -229,6 +272,7 @@ def process_ecg(user_id: str, mac: str, freq: int):
         
         if len(ecg_data) < 100:
             log.warning(f"Insufficient data samples: {len(ecg_data)} (minimum 100 required)")
+            save_to_sqlite(user_id, mac, freq, -1)
             save_to_clickhouse(user_id, mac, freq, -1.0)
             return -1
         
@@ -262,11 +306,13 @@ def process_ecg(user_id: str, mac: str, freq: int):
             log.error(f"Signal processing error: {str(processing_error)}")
             bpm = -2
         
+        save_to_sqlite(user_id, mac, freq, int(round(bpm)))
         save_to_clickhouse(user_id, mac, freq, float(bpm))
         
         return int(round(bpm))
         
     except Exception as e:
         log.error(f"ECG processing failed: {e}\n{traceback.format_exc()}")
+        save_to_sqlite(user_id, mac, freq, -2)
         save_to_clickhouse(user_id, mac, freq, -2.0)
         raise
