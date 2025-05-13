@@ -1,14 +1,19 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import JSONResponse
 from ecg_processor import process_ecg
-import sqlite3
 from pydantic import BaseModel
 from typing import List, Dict, Any
 import logging
+import clickhouse_connect
 
-# Настройка логгера
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+CH_HOST = 'clickhouse'
+CH_USER = 'mqttUser'
+CH_PASSWORD = 'resUttqm'
+CH_DATABASE = 'IoMT_DB'
 
 app = FastAPI(
     title="ECG Processing API",
@@ -19,55 +24,42 @@ app = FastAPI(
 class ECGRequest(BaseModel):
     user_id: str
     mac: str
-    freq: int  # Изменили на int, так как частота должна быть числом
+    freq: int
 
 class ECGResult(BaseModel):
-    id: int
+    timestamp: str
     user_id: str
     mac: str
     freq: int
-    bpm: int
-    created_at: str
+    bpm: float
+    session_date: str
 
-def get_db_connection():
-    conn = sqlite3.connect('/db/ecg.db')
-    conn.row_factory = sqlite3.Row  # Для доступа к полям по имени
-    return conn
-
-def init_db():
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS ecg_results (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id TEXT NOT NULL,
-                mac TEXT NOT NULL,
-                freq INTEGER NOT NULL,
-                bpm INTEGER NOT NULL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        ''')
-        conn.commit()
-        logger.info("Database initialized successfully")
-    except Exception as e:
-        logger.error(f"Database initialization error: {e}")
-        raise
-    finally:
-        conn.close()
+def get_ch_client():
+    return clickhouse_connect.get_client(
+        host=CH_HOST,
+        user=CH_USER,
+        password=CH_PASSWORD,
+        database=CH_DATABASE
+    )
 
 @app.on_event("startup")
 async def startup_event():
-    init_db()
+    try:
+        client = get_ch_client()
+        client.ping()
+        logger.info("Successfully connected to ClickHouse")
+    except Exception as e:
+        logger.error(f"ClickHouse connection error: {str(e)}")
+        raise
 
 @app.post("/process-ecg/", response_model=Dict[str, int])
 async def process_ecg_endpoint(request: ECGRequest):
     """
+    Обработка данных ЭКГ
     - **user_id**: ID пользователя
     - **mac**: MAC-адрес устройства
     - **freq**: Частота дискретизации ЭКГ (в Гц)
     """
-    conn = None 
     try:
         bpm = process_ecg(request.user_id, request.mac, request.freq)
         
@@ -82,16 +74,7 @@ async def process_ecg_endpoint(request: ECGRequest):
                 detail="ECG processing error"
             )
         
-        # Сохранение в SQLite
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute(
-            "INSERT INTO ecg_results (user_id, mac, freq, bpm) VALUES (?, ?, ?, ?)",
-            (request.user_id, request.mac, request.freq, bpm)
-        )
-        conn.commit()
-        logger.info(f"Saved ECG result for user {request.user_id}: BPM={bpm}")
-        
+        logger.info(f"Processed ECG for user {request.user_id}: BPM={bpm}")
         return {"bpm": bpm}
         
     except HTTPException:
@@ -102,56 +85,101 @@ async def process_ecg_endpoint(request: ECGRequest):
             status_code=500,
             detail="Internal server error"
         )
-    finally:
-        if conn is not None:
-            conn.close()
 
 @app.get("/results/", response_model=List[ECGResult])
 async def get_results(limit: int = 100):
     """
-    - **limit**: Максимальное количество возвращаемых записей
+    Получение последних результатов ЭКГ
+    - **limit**: Максимальное количество возвращаемых записей (по умолчанию 100)
     """
     try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute(
-            "SELECT * FROM ecg_results ORDER BY created_at DESC LIMIT ?",
-            (limit,)
-        )
-        results = cursor.fetchall()
+        client = get_ch_client()
         
-        return [dict(row) for row in results]
+        query = f"""
+        SELECT 
+            timestamp,
+            user_id,
+            mac,
+            freq,
+            bpm,
+            session_date
+        FROM ecg_summary_results
+        ORDER BY timestamp DESC
+        LIMIT {limit}
+        """
         
+        result = client.query(query)
+        
+        if not result.result_rows:
+            raise HTTPException(
+                status_code=404,
+                detail="No ECG results found"
+            )
+        
+        return [
+            {
+                "timestamp": str(row[0]),
+                "user_id": row[1],
+                "mac": row[2],
+                "freq": row[3],
+                "bpm": row[4],
+                "session_date": str(row[5])
+            }
+            for row in result.result_rows
+        ]
+        
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error fetching results: {str(e)}")
         raise HTTPException(
             status_code=500,
             detail="Error retrieving results"
         )
-    finally:
-        conn.close()
 
 @app.get("/results/{user_id}", response_model=List[ECGResult])
 async def get_user_results(user_id: str, limit: int = 100):
+    """
+    Получение результатов ЭКГ для конкретного пользователя
+    - **user_id**: ID пользователя
+    - **limit**: Максимальное количество возвращаемых записей (по умолчанию 100)
+    """
     try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute(
-            """SELECT * FROM ecg_results 
-            WHERE user_id = ? 
-            ORDER BY created_at DESC 
-            LIMIT ?""",
-            (user_id, limit)
-        )
-        results = cursor.fetchall()
+        client = get_ch_client()
         
-        if not results:
+        query = f"""
+        SELECT 
+            timestamp,
+            user_id,
+            mac,
+            freq,
+            bpm,
+            session_date
+        FROM ecg_summary_results
+        WHERE user_id = '{user_id}'
+        ORDER BY timestamp DESC
+        LIMIT {limit}
+        """
+        
+        result = client.query(query)
+        
+        if not result.result_rows:
             raise HTTPException(
                 status_code=404,
-                detail="No results found for this user"
+                detail=f"No results found for user {user_id}"
             )
             
-        return [dict(row) for row in results]
+        return [
+            {
+                "timestamp": str(row[0]),
+                "user_id": row[1],
+                "mac": row[2],
+                "freq": row[3],
+                "bpm": row[4],
+                "session_date": str(row[5])
+            }
+            for row in result.result_rows
+        ]
         
     except HTTPException:
         raise
@@ -161,5 +189,3 @@ async def get_user_results(user_id: str, limit: int = 100):
             status_code=500,
             detail="Error retrieving user results"
         )
-    finally:
-        conn.close()

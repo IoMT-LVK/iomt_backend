@@ -61,7 +61,7 @@ def load_user_data(user_id: str, mac: str, freq: int, days: int = 60):
     except Exception as e:
         logger.error(f"Error loading ECG summary data: {e}")
         return pd.DataFrame(columns=['timestamp', 'bpm'])
-
+  
 def predict_user_next_session(user_id: str, mac: str, freq: int):
     try:
         df = load_user_data(user_id, mac, freq, days=60)
