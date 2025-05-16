@@ -1,6 +1,7 @@
 import pandas as pd
 import clickhouse_connect
 from statsmodels.tsa.arima.model import ARIMA
+from pmdarima import auto_arima
 from datetime import datetime, timedelta
 import numpy as np
 import logging
@@ -70,39 +71,29 @@ def predict_user_next_session(user_id: str, mac: str, freq: int):
         if df.empty or len(df) < 10:
             logger.warning("Недостаточно данных для прогноза")
             print(datetime.now())
-            return datetime.now() + timedelta(hours=1)
+            return datetime.now() + timedelta(hours=24)
 
         df = df.sort_values('timestamp')
-        df['time_diff'] = df['timestamp'].diff().dt.total_seconds() / 60  # в минутах
+        df['time_diff'] = df['timestamp'].diff().dt.total_seconds() / 3600
         df = df.dropna()
         
-        data = df.tail(30).copy()
+        order = (1, 1, 1)  # (p, d, q)
+        y = df['time_diff'].values
+        X = df[['bpm']].values
         
-        y = data['time_diff'].values
-        X = data['bpm'].values.reshape(-1, 1)
-        
-        y_train, y_test = y[:-1], y[-1]
-        X_train, X_test = X[:-1], X[-1]
-        
-        order = (1, 0, 1)  # (p, d, q)
-        
-        model = ARIMA(endog=y_train, exog=X_train, order=order)
+        model = ARIMA(endog=y, exog=X, order=order)
         model_fit = model.fit()
         
-        next_interval = model_fit.forecast(exog=X_test.reshape(1, -1))[0]
+        logger.info(f"Параметры модели ARIMAX{order}:")
+        logger.info(model_fit.summary())
         
-        #next_interval = max(10, min(next_interval, 24 * 60))
+        next_interval = model_fit.forecast(steps=1, exog=X[-1].reshape(1, -1))[0]
         
-        last_time = data['timestamp'].iloc[-1]
-        next_session = last_time + timedelta(minutes=next_interval)
+        next_session = df['timestamp'].iloc[-1] + timedelta(hours=next_interval)
         
-        min_next_time = datetime.now() + timedelta(minutes=10)
-        if next_session < min_next_time:
-            next_session = min_next_time
-            
-        logger.info(f"Прогнозируемое время следующей сессии: {next_session}")
-        return next_session
-
+        min_next_time = datetime.now() + timedelta(hours=8)
+        return max(next_session, min_next_time)
+        
     except Exception as e:
-        logger.error(f"Ошибка прогнозирования ARIMAX: {e}")
-        return datetime.now() + timedelta(hours=1)
+        logger.error(f"Ошибка прогнозирования ARIMAX: {e}", exc_info=True)
+        return datetime.now() + timedelta(hours=24)

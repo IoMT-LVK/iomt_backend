@@ -6,3 +6,4 @@ statsmodels==0.14.1
 clickhouse-connect==0.7.5
 firebase-admin
 python-multipart
+pmdarima>=2.0.3
