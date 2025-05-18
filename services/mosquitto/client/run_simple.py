@@ -2,13 +2,16 @@ from datetime import datetime
 import json
 import logging
 import time
-from paho.mqtt import subscribe
-from paho.mqtt.client import MQTTv5
 import requests
 import sys
 import ssl
+import ctypes
 import traceback
+
+from paho.mqtt import subscribe
+from paho.mqtt.client import MQTTv5
 import clickhouse_connect as clickhouse
+
 
 API_ADMIN_LOGIN = 'root'
 API_ADMIN_PASSWORD = 'toor'
@@ -28,11 +31,16 @@ CH_HOST = 'clickhouse'
 CH_USER = API_USERNAME
 CH_PASSWORD = API_PASSWORD
 CH_DATABASE = 'IoMT_DB'
-CH_TABLENAME_FORMAT = '{user_id}/{mac}/{freq}'
+CH_TABLENAME_FORMAT = '{user_id}/{mac}/{freq}_buffer'
 CH_SESSIONS_FORMAT = 'sessions_{user_id}/{mac}/{freq}'
 
 RETRY_COUNT = 9
 RETRYBLE = {502}
+N_block = 32
+M_block = 1
+CHANNEL_NUM = 2
+DISCRETE = 4 / 8388607 / 8
+
 
 log = logging.getLogger(__name__)
 def configure_logger(logger):
@@ -90,7 +98,7 @@ def get_token(username, password):
         log.error(f"Unable to get JWT token. Status: {r.status_code} message: \"{r.text}\"")
         exit(1)
     data = r.json()
-    log.info(f"Got token ***{data['token'][-10:]}")
+    log.info(f"Got token ***{data['token']}")
     return data['token']
 
 def process_msg(client, userdata, message):
@@ -100,18 +108,17 @@ def process_msg(client, userdata, message):
     # flag: {0: begin session, 1: continue session, 2: end session, 3: start+end}
     topic_info = message.topic.split('/', 4)
     log.info(message.topic)
-    log.info(message.payload)
     if len(topic_info) != 5:
         log.error(f"Unknown topic format: {message.topic}")
         return
     _, user_id, mac, freq, flag = topic_info
     data = json.loads(message.payload)
-    data["value"] = data["value"].strip("[]").split(",")
-    try:
-        data = list((datetime.strptime(data["timestamp"], "%Y-%m-%dT%H:%M:%S.%f"), int(x)) for x in data["value"])
-    except Exception as e:
-        log.error(traceback.format_exception(e))
-        return
+    data = [[datetime.strptime(x[2], "%Y-%m-%dT%H:%M:%S.%f"), x[0], x[1]] for x in data]
+    #try:
+    #    data = [datetime.strptime(data["timestamp"], "%Y-%m-%dT%H:%M:%S.%f"), data["value"][0], data["value"][1]]
+    #except Exception as e:
+    #    log.error(traceback.format_exception(e))
+    #    return
 
     # если нет таблицы - создать таблицу
     table = CH_TABLENAME_FORMAT.format(
@@ -134,7 +141,7 @@ def process_msg(client, userdata, message):
     clh_client.command(
         """
         CREATE TABLE IF NOT EXISTS {table_name:Identifier} 
-        (timestamp DateTime64 CODEC(DoubleDelta, LZ4), value Int32 CODEC(T64, LZ4))
+        (timestamp DateTime64 CODEC(DoubleDelta, LZ4), lead_1 Float32 CODEC(FPC, LZ4), lead_2 Float32 CODEC(FPC, LZ4))
         Engine MergeTree
         ORDER BY timestamp
         """,
@@ -149,12 +156,11 @@ def process_msg(client, userdata, message):
         """,
         parameters=dict(table_name=sessions_table),
     )
-
-    # записать данные
+    
     clh_client.insert(
         table=f"`{table}`",
         data=data,
-        settings={'async_insert': True},
+        settings={'async_insert': True}
     )
 
     if flag == "0":
@@ -166,16 +172,19 @@ def process_msg(client, userdata, message):
         clh_client.insert(
             table=f"`{sessions_table}`",
             data=[
-                (user_sessions[sessions_table], data[0][0]),
+                (user_sessions[sessions_table], data[-1][0]),
             ],
             settings={'async_insert': True},
         )
+        resp = requests.post("http://compressor/compress", json={"user_id": user_id, "mac": mac, "freq": freq},
+                             params={"start_time": datetime.strftime(user_sessions[sessions_table], "%Y-%m-%d %H:%M:%S.%f"),
+                                    "end_time": datetime.strftime(data[-1][0], "%Y-%m-%d %H:%M:%S.%f")})
         del user_sessions[sessions_table]
     if flag == "3":
         clh_client.insert(
             table=f"`{sessions_table}`",
             data=[
-                (data[0][0], data[-1][0]),
+                (data[0][0], data[0][0]),
             ],
             settings={'async_insert': True},
         )

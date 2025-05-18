@@ -2,6 +2,8 @@
 
 {% block javascript %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom/dist/chartjs-plugin-zoom.min.js"></script>
 
 <script>
     function create_config(label, data, name) {
@@ -15,6 +17,19 @@
                 }]
             },
             options: {
+                plugins: {
+                    zoom: {
+                        zoom: {
+                            wheel: {
+                                enabled: true,
+                            },
+                            pinch: {
+                                enabled: true
+                            },
+                            mode: 'x',
+                        }
+                    }
+                },
                 responsive: true,
                 maintainAspectRatio: false,
                 elements: {
@@ -33,8 +48,8 @@
         };
         return config;
     }
-    config1 = create_config({{timestamps_first | tojson}}, {{data_first | tojson}}, "Данные ЭКГ первого канала");
-    config2 = create_config({{timestamps_second | tojson}}, {{data_second | tojson}}, "Данные ЭКГ второго канала");
+    config1 = create_config({{timestamps | tojson}}, {{data_first | tojson}}, "Данные ЭКГ первого канала");
+    config2 = create_config({{timestamps | tojson}}, {{data_second | tojson}}, "Данные ЭКГ второго канала");
 
     window.onload = () => {new Chart(document.getElementById('myChart1'), config1); new Chart(document.getElementById('myChart2'), config2);};
   </script>

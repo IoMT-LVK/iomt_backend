@@ -3,3 +3,4 @@ clickhouse-driver==0.2.7
 pyjwt==2.3.0
 requests==2.31.0
 clickhouse-connect==0.7.0
+numpy==2.2.4

@@ -3,11 +3,19 @@ import hashlib
 import os
 import settings
 
+import numpy as np
+
 def encode_token(data={}, secret=settings.JWT_KEY, **extra):
     return jwt.encode(data | extra, secret, algorithm='HS256')
 
 def decode_token(token, secret=settings.JWT_KEY):
     return jwt.decode(token, secret, algorithms=['HS256'])
+
+def decode_compressed(data: list, kernel):
+    data: np.ndarray = np.array(data)
+    for i in range(1, data.shape[1]):
+        data[:, i] = data[:, i] @ kernel
+    return data.tolist()
 
 def hash_password(pwd, salt=None):
     if len(pwd) > settings.PASSWORD_MAX_LEN:

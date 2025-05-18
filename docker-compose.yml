@@ -84,6 +84,15 @@ services:
       - email_jwt_key
       - jwt_key
       - db_password
+  
+
+  compressor:
+    image: compressor
+    build:
+      context: ./services/compressor
+    networks:
+      - iomt
+      - monitoring
 
   web_app:
     image: web_app  # swarm ignores build and restart options and looks for image option in each container
@@ -143,7 +152,7 @@ services:
     labels: [orbiter=true]  # Marks to orbiter to manage this service
     deploy:
       mode: replicated
-      replicas: 2
+      replicas: 1
       labels: [orbiter=true]
       update_config:
         parallelism: 1

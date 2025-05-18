@@ -10,9 +10,12 @@ import csv
 import uuid
 import os
 import logging
+import requests
+import pandas as pd
+from io import BytesIO, StringIO
 from flask_mail import Mail, Message
 from itsdangerous import URLSafeTimedSerializer, SignatureExpired
-from utils import encode_token, decode_token, hash_password
+from utils import encode_token, decode_token, hash_password, decode_compressed
 import settings as settings
 from time import time
 import peewee
@@ -68,8 +71,8 @@ CH_HOST = 'clickhouse'
 CH_USER = API_USERNAME
 CH_PASSWORD = API_PASSWORD
 CH_DATABASE = 'IoMT_DB'
-CH_TABLENAME_FORMAT = "'{user_login}/{mac}/{freq}'"
-CH_SESSIONS_FORMAT = "'sessions_{user_login}/{mac}/{freq}'"
+CH_TABLENAME_FORMAT = "'{user_id}/{mac}/{freq}'"
+CH_SESSIONS_FORMAT = "'sessions_{user_id}/{mac}/{freq}'"
 
 
 @app.before_request
@@ -105,10 +108,11 @@ def create_file(login, mac, start, end):
         except Exception as e:
             app.logger.error(traceback.format_exception(e))
 
+    data = decode_compressed(data)
     if not os.path.exists('files/'):
         os.mkdir('files')
     file_name = login + datetime.datetime.now().strftime('%d-%m-%Y_%H:%M:%S.%f') + ".csv"
-    columns = ["Time", "Value"]
+    columns = ["Time", "Lead 1", "Lead 2"]
     with open(os.path.join('files/', file_name), 'w+') as out:
         csv_out = csv.writer(out)
         csv_out.writerow(columns)
@@ -250,6 +254,8 @@ def get_sessions(login):
     app.logger.info(list((u.login for u in get_allowed_users(current_user))))
     if login not in list((u.login for u in get_allowed_users(current_user))):
         return redirect(url_for('main'))
+    else:
+        user_id = [u.id for u in get_allowed_users(current_user) if u.login == login][0]
     clh_client = clickhouse.get_client(
         host=CH_HOST,
         user=CH_USER,
@@ -263,7 +269,7 @@ def get_sessions(login):
     for dev in devices:
         for freq in settings.FREQ:
             table = CH_SESSIONS_FORMAT.format(
-                user_login=login,
+                user_id=user_id,
                 mac=dev.mac,
                 freq=freq
             )
@@ -326,10 +332,12 @@ def graphic():
     except Exception as e:
         app.logger.error(traceback.format_exception(e))
         return
-        
+
     if login not in list((u.login for u in get_allowed_users(current_user))):
         app.logger.error(f"No access for operator {current_user.login} to user {login}")
         return redirect(url_for('main'))
+    else:
+        user_id = [u.id for u in get_allowed_users(current_user) if u.login == login][0]
     clh_client = clickhouse.get_client(
         host=CH_HOST,
         user=CH_USER,
@@ -339,21 +347,26 @@ def graphic():
     )
     data = list()
     app.logger.info(f"Selecting data in range {start} to {end} from clickhouse")
-    for freq in settings.FREQ:
+    resp = requests.post("http://compressor/decompress", json={"user_id": user_id, "mac": mac, "freq": freq},
+                         params={"start_time": start, "end_time": end})
+    """for freq in settings.FREQ:
         table_name = CH_TABLENAME_FORMAT.format(
             user_login=login,
             mac=mac,
             freq=freq
         )
         try:
-            res = clh_client.query(f"""SELECT * FROM {table_name} WHERE timestamp >= '{start}' AND timestamp <= '{end}'""")
+            res = clh_client.query(fSELECT * FROM {table_name} WHERE timestamp >= '{start}' AND timestamp <= '{end}')
             data.extend(res.result_rows)
         except Exception as e:
-            app.logger.error(traceback.format_exception(e))
-    timestamps = list(x[0] for x in data)
-    data = list(x[1]*DISCRETE for x in data)
-    return render_template('display_data.html', data_first=data[::2], timestamps_first=timestamps[::2], 
-                           data_second=data[1::2], timestamps_second=timestamps[1::2], l=len(data))
+            app.logger.error(traceback.format_exception(e))"""
+    data = StringIO(resp.content.decode())
+    data = pd.read_csv(data)
+    timestamps = data["timestamp"].to_list()
+    lead_1 = data["first_lead"].to_list()
+    lead_2 = data["second_lead"].to_list()
+    return render_template('display_data.html', data_first=lead_1, timestamps=timestamps, 
+                           data_second=lead_2, l=len(data))
 
 
 @app.route('/logout/')
